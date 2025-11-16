@@ -45,12 +45,16 @@ class IncidentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'room_id' => 'nullable|integer|exists:rooms,id',
+            'room_id' => 'required|integer|exists:rooms,id',
+            'type' => 'required|string|in:equipment,infrastructure,cleaning,other',
+            'priority' => 'required|string|in:low,medium,high,urgent',
             'description' => 'required|string',
+            'status' => 'nullable|string|in:pending,in_progress,resolved',
         ]);
         $data['reported_by'] = Auth::id();
-        // Optionally attach teacher_id if authenticated user is a teacher (matching by email to Teacher model is performed elsewhere; keep reported_by as user id)
-        $inc = Incident::create(array_merge($data, ['status'=>'open']));
+        $data['status'] = $data['status'] ?? 'pending';
+        
+        $inc = Incident::create($data);
         return response()->json($inc, 201);
     }
 
@@ -96,11 +100,36 @@ class IncidentController extends Controller
             return response()->json(['message'=>'Forbidden'], 403);
         }
         $data = $request->validate([
-            'status' => 'nullable|string',
+            'room_id' => 'nullable|integer|exists:rooms,id',
+            'type' => 'nullable|string|in:equipment,infrastructure,cleaning,other',
+            'priority' => 'nullable|string|in:low,medium,high,urgent',
+            'description' => 'nullable|string',
+            'status' => 'nullable|string|in:pending,in_progress,resolved',
             'resolved_by' => 'nullable|integer',
             'resolved_at' => 'nullable|date',
         ]);
         $inc->update($data);
         return response()->json($inc);
+    }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/incidents/{id}",
+     *     summary="Eliminar incidencia",
+     *     tags={"Incidencias"},
+     *     security={{"cookieAuth": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *     @OA\Response(response=200, description="Incidencia eliminada")
+     * )
+     */
+    public function destroy(Request $request, $id)
+    {
+        $inc = Incident::findOrFail($id);
+        $user = $request->user();
+        if (! $user->hasRole('administrador') && $inc->reported_by !== $user->id) {
+            return response()->json(['message'=>'Forbidden'], 403);
+        }
+        $inc->delete();
+        return response()->json(['message' => 'Incidencia eliminada correctamente']);
     }
 }

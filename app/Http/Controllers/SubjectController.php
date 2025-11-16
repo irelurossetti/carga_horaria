@@ -61,6 +61,11 @@ class SubjectController extends Controller
             'name' => 'required|string',
             'credits' => 'nullable|integer',
             'description' => 'nullable|string',
+            'semester' => 'nullable|integer|min:1|max:10',
+            'theoretical_hours' => 'nullable|integer|min:0',
+            'practical_hours' => 'nullable|integer|min:0',
+            'prerequisites' => 'nullable|string',
+            'status' => 'nullable|string|in:active,inactive',
         ]);
 
         $subject = Subject::create($data);
@@ -112,6 +117,11 @@ class SubjectController extends Controller
             'name' => 'sometimes|required|string',
             'credits' => 'nullable|integer',
             'description' => 'nullable|string',
+            'semester' => 'nullable|integer|min:1|max:10',
+            'theoretical_hours' => 'nullable|integer|min:0',
+            'practical_hours' => 'nullable|integer|min:0',
+            'prerequisites' => 'nullable|string',
+            'status' => 'nullable|string|in:active,inactive',
         ]);
 
         $subject->fill($data);

@@ -447,26 +447,233 @@ function showClassDetails(subject, group, room, start, end, isVirtual) {
 async function loadGeneralSchedule() {
     // Cargar vista general con todos los horarios
     showNotification('⏳ Cargando vista general...');
-    // Implementar lógica para vista general
+    
+    try {
+        const response = await fetch(`${API_BASE}/schedules`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Error al cargar horarios');
+        }
+        
+        const rawSchedules = await response.json();
+        console.log('Horarios cargados:', rawSchedules);
+        
+        // Mapear los horarios al formato esperado
+        currentSchedule = rawSchedules.map(schedule => {
+            const dayMapping = {
+                'monday': 'Lunes',
+                'tuesday': 'Martes',
+                'wednesday': 'Miércoles',
+                'thursday': 'Jueves',
+                'friday': 'Viernes',
+                'saturday': 'Sábado',
+                'Lunes': 'Lunes',
+                'Martes': 'Martes',
+                'Miércoles': 'Miércoles',
+                'Jueves': 'Jueves',
+                'Viernes': 'Viernes',
+                'Sábado': 'Sábado'
+            };
+            
+            return {
+                day: dayMapping[schedule.day_of_week] || schedule.day_of_week,
+                start_time: schedule.start_time.substring(0, 5),
+                end_time: schedule.end_time.substring(0, 5),
+                subject: schedule.group?.subject?.name || 'Sin materia',
+                group: schedule.group?.name || 'Sin grupo',
+                room: schedule.room?.name || 'Sin aula',
+                teacher: schedule.teacher?.name || 'Sin docente',
+                type: 'theoretical',
+                is_virtual: false
+            };
+        });
+        
+        if (currentSchedule.length === 0) {
+            renderEmptySchedule();
+            showNotification('ℹ️ No hay horarios registrados', 'error');
+        } else {
+            renderSchedule(currentSchedule, 'Todos los Horarios', 'general');
+            showNotification('✅ Vista general cargada');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showNotification('❌ Error al cargar horarios: ' + error.message, 'error');
+        renderEmptySchedule();
+    }
 }
 
 function exportSchedule(format) {
     const viewType = document.getElementById('viewType').value;
     
-    if (currentSchedule.length === 0 && viewType !== 'general') {
+    if (currentSchedule.length === 0) {
         showNotification('❌ No hay horario para exportar', 'error');
         return;
     }
     
     if (format === 'pdf') {
         showNotification('📄 Generando PDF...');
-        // Implementar exportación PDF
-        window.open(`${API_BASE}/schedules/export.pdf?type=${viewType}`, '_blank');
+        exportToPDF();
     } else if (format === 'excel') {
         showNotification('📊 Generando Excel...');
-        // Implementar exportación Excel
-        window.open(`${API_BASE}/schedules/export?type=${viewType}`, '_blank');
+        exportToExcel();
     }
+}
+
+function exportToExcel() {
+    // Preparar datos para Excel
+    const exportData = [];
+    
+    // Agregar encabezado
+    exportData.push(['Horario Semanal']);
+    exportData.push([]);
+    
+    const viewType = document.getElementById('viewType').value;
+    const scheduleTitle = document.getElementById('scheduleTitle')?.textContent || 'Todos los Horarios';
+    exportData.push([scheduleTitle]);
+    exportData.push([]);
+    
+    // Agregar tabla de horarios
+    exportData.push(['Día', 'Hora Inicio', 'Hora Fin', 'Materia', 'Grupo', 'Aula', 'Docente']);
+    
+    // Ordenar por día y hora
+    const dayOrder = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const sortedSchedule = [...currentSchedule].sort((a, b) => {
+        const dayCompare = dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
+        if (dayCompare !== 0) return dayCompare;
+        return a.start_time.localeCompare(b.start_time);
+    });
+    
+    sortedSchedule.forEach(item => {
+        exportData.push([
+            item.day,
+            item.start_time,
+            item.end_time,
+            item.subject || '',
+            item.group || '',
+            item.room || '',
+            item.teacher || ''
+        ]);
+    });
+    
+    // Convertir a CSV
+    const csvContent = exportData.map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    // Descargar archivo
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const fecha = new Date().toISOString().split('T')[0];
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `horario_semanal_${fecha}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('✅ Excel exportado exitosamente');
+}
+
+function exportToPDF() {
+    // Crear una ventana de impresión con solo el calendario
+    const printWindow = window.open('', '_blank');
+    const scheduleTitle = document.getElementById('scheduleTitle')?.textContent || 'Todos los Horarios';
+    const scheduleSubtitle = document.getElementById('scheduleSubtitle')?.textContent || 'Vista General';
+    const totalHours = document.getElementById('totalHours')?.textContent || '0h';
+    
+    // Obtener el contenido de la tabla
+    const scheduleTable = document.getElementById('scheduleTable')?.parentElement?.parentElement?.outerHTML || '';
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Horario Semanal - ${scheduleTitle}</title>
+            <style>
+                @page { size: landscape; margin: 1cm; }
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 0; 
+                    padding: 20px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 20px;
+                    border-bottom: 2px solid #881F34;
+                    padding-bottom: 10px;
+                }
+                .header h1 {
+                    color: #881F34;
+                    margin: 0 0 5px 0;
+                    font-size: 24px;
+                }
+                .header p {
+                    margin: 5px 0;
+                    color: #666;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 10px;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: left;
+                }
+                th {
+                    background-color: #881F34;
+                    color: white;
+                    font-weight: bold;
+                }
+                .time-cell {
+                    background-color: #f9fafb;
+                    font-weight: 600;
+                    width: 100px;
+                }
+                .class-theoretical { background-color: #dbeafe; }
+                .class-practical { background-color: #dcfce7; }
+                .class-virtual { background-color: #fef3c7; }
+                .footer {
+                    margin-top: 20px;
+                    text-align: center;
+                    font-size: 10px;
+                    color: #666;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Horario Semanal</h1>
+                <p><strong>${scheduleTitle}</strong></p>
+                <p>${scheduleSubtitle} | Total de Horas: ${totalHours}</p>
+            </div>
+            ${scheduleTable}
+            <div class="footer">
+                <p>Generado el ${new Date().toLocaleDateString('es-ES', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}</p>
+                <p>FICCT - Sistema de Gestión Académica</p>
+            </div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    
+    // Esperar a que se cargue y luego imprimir
+    setTimeout(() => {
+        printWindow.print();
+        showNotification('✅ PDF generado');
+    }, 500);
 }
 
 function printSchedule() {
@@ -474,7 +681,9 @@ function printSchedule() {
         showNotification('❌ No hay horario para imprimir', 'error');
         return;
     }
-    window.print();
+    
+    // Usar la misma función que PDF pero con auto-print
+    exportToPDF();
 }
 
 // Load initial data when DOM is ready
@@ -483,6 +692,15 @@ document.addEventListener('DOMContentLoaded', function() {
     Promise.all([loadTeachers(), loadGroups(), loadRooms(), loadPeriods()])
         .then(() => {
             console.log('Datos cargados correctamente');
+            // Cargar automáticamente la vista general
+            const viewType = document.getElementById('viewType').value;
+            if (viewType === 'general') {
+                loadGeneralSchedule();
+            } else {
+                // Cambiar a vista general por defecto
+                document.getElementById('viewType').value = 'general';
+                changeViewType();
+            }
         })
         .catch(error => {
             console.error('Error al cargar datos:', error);

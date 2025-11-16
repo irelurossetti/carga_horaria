@@ -290,6 +290,7 @@ let allSchedules = [];
 let filteredSchedules = [];
 let assignments = [];
 let rooms = [];
+let subjects = [];
 let currentView = 'grid';
 
 const timeSlots = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
@@ -314,47 +315,76 @@ function showNotification(message, type = 'success') {
 
 async function loadSchedules() {
     try {
+        console.log('Loading schedules...');
         const response = await fetch(`${API_BASE}/schedules`, {
             headers: { 'Accept': 'application/json' }
         });
         
-        if (!response.ok) throw new Error('Error al cargar horarios');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Schedule API error:', errorText);
+            throw new Error('Error al cargar horarios: ' + response.status);
+        }
         
-        allSchedules = await response.json();
+        const rawSchedules = await response.json();
+        console.log('Raw schedules from API:', rawSchedules);
+        
+        // Mapear los datos de la API al formato esperado
+        allSchedules = rawSchedules.map(schedule => {
+            console.log('Processing schedule:', schedule);
+            
+            // Buscar la asignación correspondiente si existe
+            const assignment = assignments.find(a => a.group_id === schedule.group_id);
+            
+            // Obtener el nombre de la materia
+            let subjectName = 'Sin materia';
+            if (schedule.group?.subject) {
+                // Si el grupo tiene la relación subject cargada
+                subjectName = schedule.group.subject.name;
+            } else if (assignment?.subject_name) {
+                // Si encontramos la asignación
+                subjectName = assignment.subject_name;
+            }
+            
+            // Mapear el día al formato correcto
+            const dayMapping = {
+                'lunes': 'monday',
+                'martes': 'tuesday',
+                'miércoles': 'wednesday',
+                'jueves': 'thursday',
+                'viernes': 'friday',
+                'sábado': 'saturday'
+            };
+            
+            const dayLower = schedule.day_of_week?.toLowerCase() || '';
+            const mappedDay = dayMapping[dayLower] || dayLower || 'monday';
+            
+            return {
+                id: schedule.id,
+                assignment_id: schedule.assignment_id || null,
+                group_id: schedule.group_id,
+                room_id: schedule.room_id,
+                teacher_id: schedule.teacher_id,
+                teacher_name: schedule.teacher?.name || assignment?.teacher_name || 'Sin docente',
+                subject_name: subjectName,
+                group_name: schedule.group?.name || assignment?.group_name || 'Sin grupo',
+                room_name: schedule.room?.name || 'Sin aula',
+                day: mappedDay,
+                start_time: schedule.start_time?.substring(0, 5) || '08:00',
+                end_time: schedule.end_time?.substring(0, 5) || '10:00',
+                has_conflicts: false,
+                status: 'active'
+            };
+        });
+        
+        console.log('Mapped schedules:', allSchedules);
         filteredSchedules = [...allSchedules];
         renderCurrentView();
     } catch (error) {
-        console.error('Error:', error);
-        // Datos de prueba
-        allSchedules = [
-            {
-                id: 1,
-                assignment_id: 1,
-                teacher_name: 'Dr. Juan Pérez',
-                subject_name: 'Introducción a la Programación',
-                group_name: 'Grupo A',
-                room_name: 'Aula 101',
-                day: 'monday',
-                start_time: '08:00',
-                end_time: '10:00',
-                has_conflicts: false,
-                status: 'active'
-            },
-            {
-                id: 2,
-                assignment_id: 2,
-                teacher_name: 'Ing. María García',
-                subject_name: 'Base de Datos',
-                group_name: 'Grupo B',
-                room_name: 'Aula 102',
-                day: 'tuesday',
-                start_time: '14:00',
-                end_time: '16:00',
-                has_conflicts: true,
-                status: 'active'
-            },
-        ];
-        filteredSchedules = [...allSchedules];
+        console.error('Error loading schedules:', error);
+        showNotification('❌ Error al cargar horarios: ' + error.message, 'error');
+        allSchedules = [];
+        filteredSchedules = [];
         renderCurrentView();
     }
 }
@@ -366,7 +396,20 @@ async function loadAssignments() {
         });
         
         if (response.ok) {
-            assignments = await response.json();
+            const rawAssignments = await response.json();
+            
+            // Mapear los datos de la API al formato esperado
+            assignments = rawAssignments.map(assignment => ({
+                id: assignment.id,
+                teacher_id: assignment.teacher_id,
+                subject_id: assignment.subject_id,
+                group_id: assignment.group_id,
+                teacher_name: assignment.teacher?.name || 'Sin docente',
+                subject_name: assignment.subject?.name || 'Sin materia',
+                subject_code: assignment.subject?.code || '',
+                group_name: assignment.group?.name || 'Sin grupo',
+                weekly_hours: assignment.horas_semanales || 0
+            }));
         } else {
             assignments = [
                 { id: 1, teacher_name: 'Dr. Juan Pérez', subject_name: 'Introducción a la Programación', group_name: 'Grupo A' },
@@ -726,13 +769,37 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
     e.preventDefault();
     
     const scheduleId = document.getElementById('scheduleId').value;
+    const assignmentId = parseInt(document.getElementById('assignmentSelect').value);
+    const roomId = parseInt(document.getElementById('roomSelect').value);
+    const day = document.getElementById('daySelect').value;
+    const startTime = document.getElementById('startTimeSelect').value;
+    const endTime = document.getElementById('endTimeSelect').value;
+    
+    // Buscar la asignación seleccionada para obtener group_id y teacher_id
+    const assignment = assignments.find(a => a.id === assignmentId);
+    
+    if (!assignment) {
+        showNotification('❌ Por favor selecciona una asignación válida', 'error');
+        return;
+    }
+    
+    // Mapear el día al formato esperado por el backend
+    const dayMapping = {
+        'monday': 'Lunes',
+        'tuesday': 'Martes',
+        'wednesday': 'Miércoles',
+        'thursday': 'Jueves',
+        'friday': 'Viernes',
+        'saturday': 'Sábado'
+    };
+    
     const data = {
-        assignment_id: parseInt(document.getElementById('assignmentSelect').value),
-        room_id: parseInt(document.getElementById('roomSelect').value),
-        day: document.getElementById('daySelect').value,
-        start_time: document.getElementById('startTimeSelect').value,
-        end_time: document.getElementById('endTimeSelect').value,
-        notes: document.getElementById('scheduleNotes').value
+        group_id: assignment.group_id,
+        teacher_id: assignment.teacher_id,
+        room_id: roomId,
+        day_of_week: dayMapping[day] || day,
+        start_time: startTime,
+        end_time: endTime
     };
     
     try {
@@ -752,12 +819,13 @@ document.getElementById('scheduleForm').addEventListener('submit', async (e) => 
         const result = await response.json();
         
         if (!response.ok) {
-            throw new Error(result.message || 'Error al guardar');
+            const errorMsg = result.message || 'Error al guardar horario';
+            throw new Error(errorMsg);
         }
         
-        showNotification(result.message || '✅ Horario guardado exitosamente');
+        showNotification('✅ Horario guardado exitosamente');
         closeScheduleModal();
-        loadSchedules();
+        await loadSchedules();
     } catch (error) {
         console.error('Error:', error);
         showNotification('❌ ' + error.message, 'error');
@@ -773,7 +841,74 @@ function generateSchedules() {
 
 function exportSchedule() {
     showNotification('📊 Exportando horarios...');
-    // Implementar exportación
+    
+    if (allSchedules.length === 0) {
+        showNotification('❌ No hay horarios para exportar', 'error');
+        return;
+    }
+    
+    // Preparar datos para exportar
+    const exportData = allSchedules.map(schedule => {
+        const dayNames = {
+            'monday': 'Lunes',
+            'tuesday': 'Martes',
+            'wednesday': 'Miércoles',
+            'thursday': 'Jueves',
+            'friday': 'Viernes',
+            'saturday': 'Sábado',
+            'Lunes': 'Lunes',
+            'Martes': 'Martes',
+            'Miércoles': 'Miércoles',
+            'Jueves': 'Jueves',
+            'Viernes': 'Viernes',
+            'Sábado': 'Sábado'
+        };
+        
+        return {
+            'Día': dayNames[schedule.day] || schedule.day,
+            'Hora Inicio': schedule.start_time,
+            'Hora Fin': schedule.end_time,
+            'Materia': schedule.subject_name || 'Sin materia',
+            'Grupo': schedule.group_name || 'Sin grupo',
+            'Docente': schedule.teacher_name || 'Sin docente',
+            'Aula': schedule.room_name || 'Sin aula',
+            'Tipo': schedule.type || 'Regular'
+        };
+    });
+    
+    // Ordenar por día y hora
+    const dayOrder = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    exportData.sort((a, b) => {
+        const dayCompare = dayOrder.indexOf(a['Día']) - dayOrder.indexOf(b['Día']);
+        if (dayCompare !== 0) return dayCompare;
+        return a['Hora Inicio'].localeCompare(b['Hora Inicio']);
+    });
+    
+    // Convertir a CSV
+    const headers = Object.keys(exportData[0] || {});
+    const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => headers.map(header => {
+            const value = row[header] || '';
+            // Escapar comillas y comas
+            return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(','))
+    ].join('\n');
+    
+    // Crear y descargar archivo
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const fecha = new Date().toISOString().split('T')[0];
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `horarios_${fecha}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('✅ Horarios exportados exitosamente');
 }
 
 // Filters
@@ -807,8 +942,13 @@ document.getElementById('groupFilter').addEventListener('change', applyFilters);
 document.getElementById('searchSchedules')?.addEventListener('input', applyFilters);
 document.getElementById('conflictFilter')?.addEventListener('change', applyFilters);
 
-// Load initial data
-Promise.all([loadSchedules(), loadAssignments(), loadRooms()]);
+// Load initial data - Cargar asignaciones primero, luego horarios
+async function loadInitialData() {
+    await Promise.all([loadAssignments(), loadRooms()]);
+    await loadSchedules();
+}
+
+loadInitialData();
 </script>
 
 </body>

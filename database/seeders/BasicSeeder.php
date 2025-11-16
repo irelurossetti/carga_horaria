@@ -39,6 +39,25 @@ class BasicSeeder extends Seeder
             echo "✅ Usuario admin creado\n";
         }
 
+        // Crear 3 coordinadores de ejemplo
+        for ($i = 1; $i <= 3; $i++) {
+            $email = "coordinador{$i}@ficct.edu.bo";
+            if (!DB::table('users')->where('email', $email)->exists()) {
+                $userId = DB::table('users')->insertGetId([
+                    'name' => "Coordinador {$i}",
+                    'email' => $email,
+                    'password' => Hash::make('password'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                DB::table('role_user')->insert([
+                    'user_id' => $userId,
+                    'role_id' => 2, // ROL COORDINADOR
+                ]);
+            }
+        }
+
         // Crear 5 docentes de ejemplo
         for ($i = 1; $i <= 5; $i++) {
             $email = "docente{$i}@ficct.edu.bo";
@@ -102,7 +121,7 @@ class BasicSeeder extends Seeder
             }
         }
 
-        echo "✅ Datos de ejemplo creados: 1 admin, 5 docentes, 5 aulas, 5 estudiantes\n";
+        echo "✅ Datos de ejemplo creados: 1 admin, 3 coordinadores, 5 docentes, 5 aulas, 5 estudiantes\n";
         echo "📧 Login: admin@ficct.edu.bo / password\n";
     }
 }

@@ -474,6 +474,7 @@ class ReportController extends Controller
         $titles = [
             'teacher-workload' => 'Reporte de Carga Horaria por Docente',
             'teacher-attendance' => 'Reporte de Asistencia Docente',
+            'absences' => 'Reporte de Inasistencias de Docentes',
             'weekly-schedule' => 'Horarios Semanales',
             'available-rooms' => 'Aulas Disponibles',
             'group-attendance' => 'Asistencia por Grupo',
@@ -555,6 +556,9 @@ class ReportController extends Controller
                 break;
             case 'teacher-attendance':
                 $response = $this->teacherAttendance($request);
+                break;
+            case 'absences':
+                $response = $this->absences($request);
                 break;
             case 'weekly-schedule':
                 $response = $this->weeklySchedule($request);
@@ -675,13 +679,13 @@ class ReportController extends Controller
                 $sheet->getStyle('A3:B3')->getFont()->setBold(true);
                 
                 $stats = [
-                    'Total Docentes' => $data['total_teachers'] ?? 0,
-                    'Total Estudiantes' => $data['total_students'] ?? 0,
-                    'Total Aulas' => $data['total_rooms'] ?? 0,
-                    'Total Materias' => $data['total_subjects'] ?? 0,
-                    'Total Grupos' => $data['total_groups'] ?? 0,
-                    'Asignaciones' => $data['period_assignments'] ?? 0,
-                    'Horarios' => $data['period_schedules'] ?? 0,
+                    'Total Docentes' => $data->total_teachers ?? 0,
+                    'Total Estudiantes' => $data->total_students ?? 0,
+                    'Total Aulas' => $data->total_rooms ?? 0,
+                    'Total Materias' => $data->total_subjects ?? 0,
+                    'Total Grupos' => $data->total_groups ?? 0,
+                    'Asignaciones' => $data->period_assignments ?? 0,
+                    'Horarios' => $data->period_schedules ?? 0,
                 ];
                 
                 foreach($stats as $label => $value) {

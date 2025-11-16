@@ -27,10 +27,26 @@ class ScheduleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Schedule::query();
-        if ($request->has('group_id')) $query->where('group_id', $request->query('group_id'));
-        if ($request->has('teacher_id')) $query->where('teacher_id', $request->query('teacher_id'));
-        return response()->json($query->with(['group','room','teacher'])->get());
+        $query = Schedule::with(['group.subject', 'room', 'teacher']);
+        
+        if ($request->has('group_id')) {
+            $query->where('group_id', $request->query('group_id'));
+        }
+        
+        if ($request->has('teacher_id')) {
+            $query->where('teacher_id', $request->query('teacher_id'));
+        }
+        
+        $schedules = $query->get();
+        
+        // Log para debugging
+        \Log::info('Schedules API called', [
+            'count' => $schedules->count(),
+            'teacher_id' => $request->query('teacher_id'),
+            'first_schedule' => $schedules->first()
+        ]);
+        
+        return response()->json($schedules);
     }
 
     /**
@@ -228,7 +244,8 @@ class ScheduleController extends Controller
         $end = Carbon::createFromFormat('H:i', $data['end_time'])->startOfMinute()->addMinutes($tolerance)->format('H:i:s');
 
         // Conflict validation for the same group on the same day (expanded by tolerance)
-        $groupConflict = Schedule::where('group_id', $data['group_id'])
+        $groupConflict = Schedule::with(['group.subject', 'teacher'])
+            ->where('group_id', $data['group_id'])
             ->where('day_of_week', $data['day_of_week'])
             ->where(function ($q) use ($start, $end) {
                 $q->whereBetween('start_time', [$start, $end])
@@ -237,15 +254,22 @@ class ScheduleController extends Controller
                       $qq->where('start_time','<=',$start)
                          ->where('end_time','>=',$end);
                   });
-            })->exists();
+            })->first();
 
         if ($groupConflict) {
-            return response()->json(['message' => 'Schedule conflict for group'], 409);
+            $subjectName = $groupConflict->group->subject->name ?? 'Materia desconocida';
+            $teacherName = $groupConflict->teacher->name ?? 'Docente desconocido';
+            $timeRange = substr($groupConflict->start_time, 0, 5) . ' - ' . substr($groupConflict->end_time, 0, 5);
+            
+            return response()->json([
+                'message' => "Este horario no está disponible ya que está la materia {$subjectName} con el docente {$teacherName} de {$timeRange}"
+            ], 409);
         }
 
         // Conflict validation for same room if provided
         if (!empty($data['room_id'])) {
-            $roomConflict = Schedule::where('room_id', $data['room_id'])
+            $roomConflict = Schedule::with(['group.subject', 'teacher', 'room'])
+                ->where('room_id', $data['room_id'])
                 ->where('day_of_week', $data['day_of_week'])
                 ->where(function ($q) use ($start, $end) {
                     $q->whereBetween('start_time', [$start, $end])
@@ -254,16 +278,24 @@ class ScheduleController extends Controller
                           $qq->where('start_time','<=',$start)
                              ->where('end_time','>=',$end);
                       });
-                })->exists();
+                })->first();
 
             if ($roomConflict) {
-                return response()->json(['message' => 'Schedule conflict for room'], 409);
+                $roomName = $roomConflict->room->name ?? 'Aula desconocida';
+                $subjectName = $roomConflict->group->subject->name ?? 'Materia desconocida';
+                $teacherName = $roomConflict->teacher->name ?? 'Docente desconocido';
+                $timeRange = substr($roomConflict->start_time, 0, 5) . ' - ' . substr($roomConflict->end_time, 0, 5);
+                
+                return response()->json([
+                    'message' => "El aula {$roomName} no está disponible ya que está ocupada por la materia {$subjectName} con el docente {$teacherName} de {$timeRange}"
+                ], 409);
             }
         }
 
         // Conflict validation for same teacher if provided
         if (!empty($data['teacher_id'])) {
-            $teacherConflict = Schedule::where('teacher_id', $data['teacher_id'])
+            $teacherConflict = Schedule::with(['group.subject', 'teacher'])
+                ->where('teacher_id', $data['teacher_id'])
                 ->where('day_of_week', $data['day_of_week'])
                 ->where(function ($q) use ($start, $end) {
                     $q->whereBetween('start_time', [$start, $end])
@@ -272,10 +304,16 @@ class ScheduleController extends Controller
                           $qq->where('start_time','<=',$start)
                              ->where('end_time','>=',$end);
                       });
-                })->exists();
+                })->first();
 
             if ($teacherConflict) {
-                return response()->json(['message' => 'Schedule conflict for teacher'], 409);
+                $teacherName = $teacherConflict->teacher->name ?? 'Docente desconocido';
+                $subjectName = $teacherConflict->group->subject->name ?? 'Materia desconocida';
+                $timeRange = substr($teacherConflict->start_time, 0, 5) . ' - ' . substr($teacherConflict->end_time, 0, 5);
+                
+                return response()->json([
+                    'message' => "El docente {$teacherName} no está disponible ya que está dando la materia {$subjectName} de {$timeRange}"
+                ], 409);
             }
         }
 

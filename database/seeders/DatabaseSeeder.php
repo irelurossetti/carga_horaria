@@ -11,6 +11,9 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Puedes descomentar la línea siguiente para usar el seeder completo con 30 registros de cada entidad
+        // $this->call(CompleteSeeder::class);
+        
         echo "🚀 Iniciando población de base de datos...\n\n";
         
         // Poblar en orden (respetando las relaciones de claves foráneas)

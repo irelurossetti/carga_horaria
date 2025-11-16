@@ -45,14 +45,14 @@
             transition: all 0.2s ease; 
             border-radius: 8px; 
             margin-bottom: 4px; 
-            color: rgba(255, 255, 255, 0.7); 
+            color: rgba(191, 219, 254, 0.9); 
         }
         .sidebar-item:hover { 
-            background-color: rgba(255, 255, 255, 0.08); 
+            background-color: rgba(37, 99, 235, 0.5); 
             color: #FFFFFF; 
         }
         .sidebar-item.active { 
-            background-color: rgba(255, 255, 255, 0.15); 
+            background-color: #881F34; 
             color: #FFFFFF; 
             font-weight: 600; 
         }
@@ -71,9 +71,9 @@
         <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
         
         <!-- ===== SIDEBAR ===== -->
-        <div id="sidebar" class="w-72 bg-[#1A1A1A] flex flex-col text-white flex-shrink-0 relative z-50 fixed lg:relative h-full transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
+        <div id="sidebar" class="w-72 bg-[#2c4a6b] flex flex-col text-white flex-shrink-0 relative z-50 fixed lg:relative h-full transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
             <!-- Logo -->
-            <div class="h-16 flex items-center px-6 border-b border-white/5">
+            <div class="h-16 flex items-center px-6 border-b border-blue-900">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center shadow-lg shadow-brand-primary/20">
                         <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -82,14 +82,14 @@
                     </div>
                     <div>
                         <h1 class="font-bold text-base leading-none tracking-wide">FICCT SGA</h1>
-                        <span class="text-[11px] font-medium text-white/50 uppercase tracking-wider">Gestión Académica</span>
+                        <span class="text-[11px] font-medium text-blue-200 uppercase tracking-wider">Gestión Académica</span>
                     </div>
                 </div>
             </div>
 
             <!-- Navegación -->
             <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-                <div class="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3 px-2">Principal</div>
+                <div class="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-3 px-2">Principal</div>
                 
                 <a href="{{ route('dashboard') }}" class="sidebar-item @if(request()->routeIs('dashboard')) active @endif flex items-center px-3 py-2.5 gap-3">
                     <svg class="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,7 +98,7 @@
                     <span class="text-sm font-medium">Dashboard</span>
                 </a>
 
-                <div class="text-xs font-semibold text-white/40 uppercase tracking-wider mt-8 mb-3 px-2">Académico</div>
+                <div class="text-xs font-semibold text-blue-200 uppercase tracking-wider mt-8 mb-3 px-2">Académico</div>
 
                 <a href="{{ route('periods.index') }}" class="sidebar-item @if(request()->routeIs('periods.index')) active @endif flex items-center px-3 py-2.5 gap-3">
                     <svg class="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -128,7 +128,7 @@
                     <span class="text-sm font-medium">Aulas</span>
                 </a>
 
-                <div class="text-xs font-semibold text-white/40 uppercase tracking-wider mt-8 mb-3 px-2">Sistema</div>
+                <div class="text-xs font-semibold text-blue-200 uppercase tracking-wider mt-8 mb-3 px-2">Sistema</div>
                 
                 <a href="#" class="sidebar-item flex items-center px-3 py-2.5 gap-3">
                     <svg class="w-5 h-5 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -147,16 +147,16 @@
             </nav>
 
             <!-- Footer del sidebar -->
-            <div class="p-4 border-t border-white/5">
+            <div class="p-4 border-t border-blue-900">
                 <div class="flex items-center gap-3 px-2 py-2">
-                    <div class="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-sm font-bold border-2 border-[#1A1A1A]">
+                    <div class="w-8 h-8 rounded-full bg-brand-primary flex items-center justify-center text-sm font-bold border-2 border-[#2c4a6b]">
                         {{ substr(Auth::user()->name ?? 'A', 0, 1) }}
                     </div>
                     <div class="flex-1 overflow-hidden">
                         <p class="text-sm font-medium truncate text-white">{{ Auth::user()->name ?? 'Admin' }}</p>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button type="submit" class="text-xs text-white/50 hover:text-white truncate text-left w-full">Cerrar Sesión</button>
+                            <button type="submit" class="text-xs text-blue-200 hover:text-white truncate text-left w-full">Cerrar Sesión</button>
                         </form>
                     </div>
                 </div>

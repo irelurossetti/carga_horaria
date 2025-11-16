@@ -87,7 +87,6 @@ class CoordinatorDashboardController extends Controller
             try {
                 $upcomingSchedules = Schedule::where('day_of_week', $currentDayName)
                     ->where('start_time', '>=', $currentTime)
-                    ->with(['assignment.teacher.user', 'room'])
                     ->orderBy('start_time', 'asc')
                     ->take(3)
                     ->get();
@@ -95,7 +94,6 @@ class CoordinatorDashboardController extends Controller
                 $currentClass = Schedule::where('day_of_week', $currentDayName)
                     ->where('start_time', '<=', $currentTime)
                     ->where('end_time', '>=', $currentTime)
-                    ->with(['assignment.teacher.user', 'room'])
                     ->first();
             } catch (\Exception $e) {
                 \Log::warning('Error al obtener horarios coordinador: ' . $e->getMessage());

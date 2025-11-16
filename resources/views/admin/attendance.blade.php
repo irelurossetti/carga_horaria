@@ -27,11 +27,11 @@
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900">Registro de Asistencia</h1>
-                <p class="text-gray-500 mt-1">Gestiona el registro de asistencia de docentes</p>
+                <h1 class="text-3xl font-bold text-gray-900">Gestión de Asistencia</h1>
+                <p class="text-gray-500 mt-1">Consulta y gestiona los registros de asistencia de docentes</p>
             </div>
-            <button onclick="openAttendanceModal()" class="px-6 py-3 bg-brand-primary hover:bg-brand-hover text-white rounded-lg font-medium transition-colors shadow-sm">
-                + Registrar Asistencia
+            <button onclick="exportAttendance()" class="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm">
+                📊 Exportar Excel
             </button>
         </div>
 
@@ -168,121 +168,7 @@
     </main>
 </div>
 
-<!-- Modal para Registrar Asistencia -->
-<div id="attendanceModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-        <div class="p-6 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h3 id="attendanceModalTitle" class="text-xl font-bold text-gray-900">Registrar Asistencia</h3>
-                <button onclick="closeAttendanceModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <form id="attendanceForm" class="p-6 space-y-6">
-            <input type="hidden" id="attendanceId">
-            
-            <div class="grid grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Docente *</label>
-                    <select id="attendanceTeacher" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
-                        <option value="">Seleccionar docente</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
-                    <input type="date" id="attendanceDate" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Materia *</label>
-                    <select id="attendanceSubject" required onchange="loadGroupsBySubject()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
-                        <option value="">Seleccionar materia</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Grupo *</label>
-                    <select id="attendanceGroup" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
-                        <option value="">Seleccionar grupo</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="grid grid-cols-3 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Hora Inicio *</label>
-                    <input type="time" id="attendanceStartTime" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Hora Fin *</label>
-                    <input type="time" id="attendanceEndTime" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Hora Registro</label>
-                    <input type="time" id="attendanceCheckTime" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent" readonly>
-                </div>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
-                <div class="grid grid-cols-4 gap-4">
-                    <label class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-primary transition-colors">
-                        <input type="radio" name="attendanceStatus" value="present" required class="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary">
-                        <span class="ml-3 text-sm font-medium text-gray-700">Presente</span>
-                    </label>
-                    <label class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-primary transition-colors">
-                        <input type="radio" name="attendanceStatus" value="absent" class="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary">
-                        <span class="ml-3 text-sm font-medium text-gray-700">Ausente</span>
-                    </label>
-                    <label class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-primary transition-colors">
-                        <input type="radio" name="attendanceStatus" value="late" class="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary">
-                        <span class="ml-3 text-sm font-medium text-gray-700">Tardanza</span>
-                    </label>
-                    <label class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-brand-primary transition-colors">
-                        <input type="radio" name="attendanceStatus" value="justified" class="w-4 h-4 text-brand-primary border-gray-300 focus:ring-brand-primary">
-                        <span class="ml-3 text-sm font-medium text-gray-700">Justificado</span>
-                    </label>
-                </div>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Observaciones</label>
-                <textarea id="attendanceNotes" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent" placeholder="Notas adicionales..."></textarea>
-            </div>
-            
-            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <div class="ml-3">
-                        <h4 class="text-sm font-medium text-blue-900">Información</h4>
-                        <p class="text-sm text-blue-700 mt-1">
-                            El registro de asistencia se guardará automáticamente con la hora actual. 
-                            Si el docente llega tarde, el sistema lo detectará automáticamente.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </form>
-
-        <div class="p-6 pt-0">
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                <button type="button" onclick="closeAttendanceModal()" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
-                    Cancelar
-                </button>
-                <button type="button" onclick="document.getElementById('attendanceForm').requestSubmit()" class="px-6 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded-lg font-medium transition-colors">
-                    Guardar Asistencia
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Nota: El registro de asistencia se realiza mediante QR desde la vista del docente -->
 
 <script>
 const API_BASE = '/api';
@@ -303,18 +189,46 @@ function showNotification(message, type = 'success') {
 
 async function loadAttendances() {
     try {
+        console.log('Cargando asistencias desde API...');
         const response = await fetch(`${API_BASE}/attendances`, {
-            headers: { 'Accept': 'application/json' }
+            headers: { 
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
         });
         
+        console.log('Response status:', response.status);
+        
         if (response.ok) {
-            allAttendances = await response.json();
+            const data = await response.json();
+            console.log('Datos recibidos de API:', data);
+            
+            // Mapear los datos de la API
+            allAttendances = data.map(attendance => ({
+                id: attendance.id,
+                date: attendance.date,
+                teacher_id: attendance.teacher_id,
+                teacher_name: attendance.teacher?.name || 'Sin docente',
+                subject_id: attendance.subject_id || attendance.schedule?.group?.subject_id,
+                subject_name: attendance.schedule?.group?.subject?.name || 'Sin materia',
+                group_id: attendance.group_id || attendance.schedule?.group_id,
+                group_name: attendance.schedule?.group?.name || 'Sin grupo',
+                start_time: attendance.schedule?.start_time?.substring(0, 5) || '',
+                end_time: attendance.schedule?.end_time?.substring(0, 5) || '',
+                check_time: attendance.time?.substring(0, 5) || '',
+                status: attendance.status,
+                notes: attendance.notes || ''
+            }));
+            
+            console.log('Asistencias mapeadas:', allAttendances.length);
         } else {
-            // Datos de prueba
+            console.warn('API no disponible, usando datos de ejemplo');
+            // Datos de ejemplo si la API falla
             allAttendances = [
                 {
                     id: 1,
-                    date: '2025-11-14',
+                    date: new Date().toISOString().split('T')[0],
                     teacher_name: 'Dr. Juan Pérez García',
                     subject_name: 'Programación I',
                     group_name: 'Grupo A',
@@ -326,7 +240,7 @@ async function loadAttendances() {
                 },
                 {
                     id: 2,
-                    date: '2025-11-14',
+                    date: new Date().toISOString().split('T')[0],
                     teacher_name: 'Ing. María López Silva',
                     subject_name: 'Base de Datos',
                     group_name: 'Grupo B',
@@ -338,7 +252,7 @@ async function loadAttendances() {
                 },
                 {
                     id: 3,
-                    date: '2025-11-14',
+                    date: new Date().toISOString().split('T')[0],
                     teacher_name: 'Lic. Carlos Rodríguez',
                     subject_name: 'Cálculo I',
                     group_name: 'Grupo A',
@@ -352,10 +266,12 @@ async function loadAttendances() {
         }
         
         filteredAttendances = [...allAttendances];
+        console.log('Total asistencias:', allAttendances.length);
         renderAttendances();
         updateStats();
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error al cargar asistencias:', error);
+        showNotification('❌ Error al cargar asistencias', 'error');
         allAttendances = [];
         filteredAttendances = [];
         renderAttendances();
@@ -546,49 +462,28 @@ function updateStats() {
     document.getElementById('attendanceRate').textContent = rate + '%';
 }
 
-function openAttendanceModal() {
-    document.getElementById('attendanceModalTitle').textContent = 'Registrar Asistencia';
-    document.getElementById('attendanceForm').reset();
-    document.getElementById('attendanceId').value = '';
-    
-    // Set current date and time
-    const now = new Date();
-    document.getElementById('attendanceDate').valueAsDate = now;
-    document.getElementById('attendanceCheckTime').value = now.toTimeString().slice(0, 5);
-    
-    // Set default status to present
-    document.querySelector('input[name="attendanceStatus"][value="present"]').checked = true;
-    
-    document.getElementById('attendanceModal').classList.remove('hidden');
-    document.getElementById('attendanceModal').classList.add('flex');
-}
+// Funciones de visualización y gestión (sin registro manual)
 
-function closeAttendanceModal() {
-    document.getElementById('attendanceModal').classList.add('hidden');
-    document.getElementById('attendanceModal').classList.remove('flex');
-}
-
-function editAttendance(id) {
+function viewAttendanceDetails(id) {
     const attendance = allAttendances.find(a => a.id === id);
     if (!attendance) {
         showNotification('❌ Registro no encontrado', 'error');
         return;
     }
     
-    document.getElementById('attendanceModalTitle').textContent = 'Editar Asistencia';
-    document.getElementById('attendanceId').value = attendance.id;
-    document.getElementById('attendanceTeacher').value = attendance.teacher_id;
-    document.getElementById('attendanceDate').value = attendance.date;
-    document.getElementById('attendanceSubject').value = attendance.subject_id;
-    document.getElementById('attendanceGroup').value = attendance.group_id;
-    document.getElementById('attendanceStartTime').value = attendance.start_time;
-    document.getElementById('attendanceEndTime').value = attendance.end_time;
-    document.getElementById('attendanceCheckTime').value = attendance.check_time || '';
-    document.querySelector(`input[name="attendanceStatus"][value="${attendance.status}"]`).checked = true;
-    document.getElementById('attendanceNotes').value = attendance.notes || '';
+    const statusText = attendance.status === 'present' ? 'Presente' : 
+                      attendance.status === 'absent' ? 'Ausente' : 
+                      attendance.status === 'late' ? 'Tardanza' : 'Justificado';
     
-    document.getElementById('attendanceModal').classList.remove('hidden');
-    document.getElementById('attendanceModal').classList.add('flex');
+    alert(`📋 Detalles de Asistencia\n\n` +
+          `Docente: ${attendance.teacher_name}\n` +
+          `Fecha: ${attendance.date}\n` +
+          `Materia: ${attendance.subject_name || 'N/A'}\n` +
+          `Grupo: ${attendance.group_name || 'N/A'}\n` +
+          `Hora: ${attendance.start_time} - ${attendance.end_time}\n` +
+          `Registro: ${attendance.check_time || attendance.time}\n` +
+          `Estado: ${statusText}\n` +
+          `Observaciones: ${attendance.notes || 'Ninguna'}`);
 }
 
 async function deleteAttendance(id) {
@@ -683,7 +578,60 @@ function applyFilters() {
 
 function exportAttendance() {
     showNotification('📊 Generando reporte de asistencia...');
-    window.open(`${API_BASE}/reports/attendances?format=excel`, '_blank');
+    
+    if (filteredAttendances.length === 0) {
+        showNotification('❌ No hay registros para exportar', 'error');
+        return;
+    }
+    
+    // Preparar datos para exportar
+    const exportData = filteredAttendances.map(attendance => ({
+        'Fecha': attendance.date,
+        'Docente': attendance.teacher_name || 'Sin docente',
+        'Materia': attendance.subject_name || 'Sin materia',
+        'Grupo': attendance.group_name || 'Sin grupo',
+        'Hora Inicio': attendance.start_time || '',
+        'Hora Fin': attendance.end_time || '',
+        'Hora Registro': attendance.check_time || attendance.time || '',
+        'Estado': attendance.status === 'present' ? 'Presente' : 
+                 attendance.status === 'absent' ? 'Ausente' : 
+                 attendance.status === 'late' ? 'Tardanza' : 
+                 attendance.status === 'justified' ? 'Justificado' : 'Desconocido',
+        'Observaciones': attendance.notes || ''
+    }));
+    
+    // Ordenar por fecha y hora
+    exportData.sort((a, b) => {
+        const dateCompare = b['Fecha'].localeCompare(a['Fecha']);
+        if (dateCompare !== 0) return dateCompare;
+        return (a['Hora Registro'] || '').localeCompare(b['Hora Registro'] || '');
+    });
+    
+    // Convertir a CSV
+    const headers = Object.keys(exportData[0] || {});
+    const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => headers.map(header => {
+            const value = row[header] || '';
+            // Escapar comillas y comas
+            return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(','))
+    ].join('\n');
+    
+    // Crear y descargar archivo
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const fecha = new Date().toISOString().split('T')[0];
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `asistencias_${fecha}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('✅ Reporte exportado exitosamente');
 }
 
 // Set today's date as default

@@ -464,20 +464,24 @@ document.getElementById('subjectForm').addEventListener('submit', async (e) => {
 
 // Filters
 function applyFilters() {
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const semester = document.getElementById('semesterFilter').value;
-    const status = document.getElementById('statusFilter').value;
+    const search = document.getElementById('searchInput')?.value?.toLowerCase() || '';
+    const semester = document.getElementById('semesterFilter')?.value || '';
+    const status = document.getElementById('statusFilter')?.value || '';
+    
+    console.log('Aplicando filtros:', { search, semester, status });
+    console.log('Total materias:', allSubjects.length);
     
     filteredSubjects = allSubjects.filter(subject => {
         const matchesSearch = !search || 
-            subject.name.toLowerCase().includes(search) || 
-            subject.code.toLowerCase().includes(search);
-        const matchesSemester = !semester || subject.semester.toString() === semester;
+            (subject.name && subject.name.toLowerCase().includes(search)) || 
+            (subject.code && subject.code.toLowerCase().includes(search));
+        const matchesSemester = !semester || (subject.semester && subject.semester.toString() === semester);
         const matchesStatus = !status || subject.status === status;
         
         return matchesSearch && matchesSemester && matchesStatus;
     });
     
+    console.log('Materias filtradas:', filteredSubjects.length);
     renderSubjects();
 }
 

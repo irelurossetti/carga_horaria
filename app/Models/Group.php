@@ -6,9 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Group extends Model
 {
-    // --- ¡AQUÍ ESTÁ EL ARREGLO! ---
-    // Añadimos 'public.' al nombre de la tabla
-    protected $table = 'public.groups';
+    protected $table = 'groups';
 
     protected $fillable = [
         'subject_id',
@@ -16,6 +14,10 @@ class Group extends Model
         'name',
         'capacity',
         'schedule',
+        'enrolled_students',
+        'status',
+        'description',
+        'room_id',
     ];
 
     /**

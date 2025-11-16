@@ -53,12 +53,22 @@ class AnnouncementController extends Controller
     {
         $data = $request->validate([
             'title' => 'required|string',
-            'body' => 'required|string',
+            'content' => 'required|string',
+            'priority' => 'nullable|string|in:low,normal,high',
+            'target' => 'nullable|string|in:all,teachers,students',
+            'active' => 'nullable|boolean',
             'expires_at' => 'nullable|date',
             'pinned' => 'nullable|boolean',
         ]);
+        
+        // Mapear 'content' a 'body'
+        $data['body'] = $data['content'];
+        unset($data['content']);
+        
         $data['published_by'] = Auth::id();
         $data['published_at'] = now();
+        $data['views'] = 0;
+        
         $ann = Announcement::create($data);
         return response()->json($ann, 201);
     }
@@ -99,10 +109,20 @@ class AnnouncementController extends Controller
         $a = Announcement::findOrFail($id);
         $data = $request->validate([
             'title' => 'nullable|string',
-            'body' => 'nullable|string',
+            'content' => 'nullable|string',
+            'priority' => 'nullable|string|in:low,normal,high',
+            'target' => 'nullable|string|in:all,teachers,students',
+            'active' => 'nullable|boolean',
             'expires_at' => 'nullable|date',
             'pinned' => 'nullable|boolean',
         ]);
+        
+        // Mapear 'content' a 'body' si existe
+        if (isset($data['content'])) {
+            $data['body'] = $data['content'];
+            unset($data['content']);
+        }
+        
         $a->update($data);
         return response()->json($a);
     }

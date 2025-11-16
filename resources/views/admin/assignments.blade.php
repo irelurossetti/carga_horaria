@@ -317,38 +317,35 @@ async function loadAssignments() {
         
         if (!response.ok) throw new Error('Error al cargar asignaciones');
         
-        allAssignments = await response.json();
+        const rawAssignments = await response.json();
+        
+        // Mapear los datos de la API al formato esperado por la vista
+        allAssignments = rawAssignments.map(assignment => ({
+            id: assignment.id,
+            teacher_id: assignment.teacher_id,
+            subject_id: assignment.subject_id,
+            group_id: assignment.group_id,
+            period_id: assignment.period_id,
+            teacher_name: assignment.teacher?.name || 'Sin docente',
+            subject_name: assignment.subject?.name || 'Sin materia',
+            subject_code: assignment.subject?.code || '',
+            group_name: assignment.group?.name || 'Sin grupo',
+            weekly_hours: assignment.horas_semanales || 0,
+            assignment_type: assignment.tipo_asignacion || 'both',
+            status: 'active',
+            start_date: assignment.fecha_inicio || '',
+            end_date: assignment.fecha_fin || '',
+            notes: assignment.observaciones || ''
+        }));
+        
         filteredAssignments = [...allAssignments];
         renderAssignments();
         updateStats();
     } catch (error) {
         console.error('Error:', error);
-        // Datos de prueba
-        allAssignments = [
-            { 
-                id: 1, 
-                teacher_name: 'Dr. Juan Pérez', 
-                subject_name: 'Introducción a la Programación', 
-                group_name: 'Grupo A', 
-                weekly_hours: 6, 
-                assignment_type: 'both',
-                status: 'active',
-                start_date: '2025-02-01',
-                end_date: '2025-06-30'
-            },
-            { 
-                id: 2, 
-                teacher_name: 'Ing. María García', 
-                subject_name: 'Base de Datos', 
-                group_name: 'Grupo B', 
-                weekly_hours: 4, 
-                assignment_type: 'theory',
-                status: 'active',
-                start_date: '2025-02-01',
-                end_date: '2025-06-30'
-            },
-        ];
-        filteredAssignments = [...allAssignments];
+        showNotification('❌ Error al cargar asignaciones: ' + error.message, 'error');
+        allAssignments = [];
+        filteredAssignments = [];
         renderAssignments();
         updateStats();
     }
@@ -622,15 +619,20 @@ document.getElementById('assignmentForm').addEventListener('submit', async (e) =
     e.preventDefault();
     
     const assignmentId = document.getElementById('assignmentId').value;
+    
+    // Obtener el periodo activo (el último periodo creado)
+    const activePeriodId = 30; // Por ahora usamos el ID del periodo activo del seeder
+    
     const data = {
         teacher_id: parseInt(document.getElementById('teacherSelect').value),
         subject_id: parseInt(document.getElementById('subjectSelect').value),
         group_id: parseInt(document.getElementById('groupSelect').value),
-        weekly_hours: parseInt(document.getElementById('weeklyHours').value),
-        assignment_type: document.getElementById('assignmentType').value,
-        start_date: document.getElementById('startDate').value,
-        end_date: document.getElementById('endDate').value,
-        notes: document.getElementById('assignmentNotes').value
+        period_id: activePeriodId,
+        horas_semanales: parseInt(document.getElementById('weeklyHours').value),
+        tipo_asignacion: document.getElementById('assignmentType').value,
+        fecha_inicio: document.getElementById('startDate').value || null,
+        fecha_fin: document.getElementById('endDate').value || null,
+        observaciones: document.getElementById('assignmentNotes').value || null
     };
     
     try {
@@ -650,10 +652,11 @@ document.getElementById('assignmentForm').addEventListener('submit', async (e) =
         const result = await response.json();
         
         if (!response.ok) {
-            throw new Error(result.message || 'Error al guardar');
+            const errorMsg = result.message || result.error || 'Error al guardar';
+            throw new Error(errorMsg);
         }
         
-        showNotification(result.message || '✅ Asignación guardada exitosamente');
+        showNotification('✅ Asignación guardada exitosamente');
         closeAssignmentModal();
         loadAssignments();
     } catch (error) {
@@ -733,12 +736,275 @@ function clearFilters() {
 
 function exportAssignments() {
     showNotification('📊 Exportando asignaciones...');
-    // Implementar exportación
+    
+    // Preparar datos para exportar
+    const exportData = filteredAssignments.map(assignment => ({
+        'Docente': assignment.teacher_name,
+        'Materia': assignment.subject_name,
+        'Código': assignment.subject_code,
+        'Grupo': assignment.group_name,
+        'Horas Semanales': assignment.weekly_hours,
+        'Tipo': assignment.assignment_type === 'theory' ? 'Teoría' : assignment.assignment_type === 'practice' ? 'Práctica' : 'Teoría y Práctica',
+        'Fecha Inicio': assignment.start_date,
+        'Fecha Fin': assignment.end_date,
+        'Estado': assignment.status === 'active' ? 'Activa' : 'Inactiva',
+        'Observaciones': assignment.notes || ''
+    }));
+    
+    // Convertir a CSV
+    const headers = Object.keys(exportData[0] || {});
+    const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => headers.map(header => {
+            const value = row[header] || '';
+            // Escapar comillas y comas
+            return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(','))
+    ].join('\n');
+    
+    // Crear y descargar archivo
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    const fecha = new Date().toISOString().split('T')[0];
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `asignaciones_${fecha}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('✅ Asignaciones exportadas exitosamente');
 }
 
 function bulkAssign() {
-    showNotification('⚡ Función de asignación masiva en desarrollo');
-    // Implementar asignación masiva
+    // Crear modal para asignación masiva
+    const modalHTML = `
+        <div id="bulkAssignModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl mx-4">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xl font-bold text-gray-900">⚡ Asignación Masiva</h3>
+                        <button onclick="closeBulkAssignModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6 space-y-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="font-medium text-blue-900 mb-2">📋 Instrucciones</h4>
+                        <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                            <li>Descarga la plantilla Excel con el formato requerido</li>
+                            <li>Completa los datos de las asignaciones</li>
+                            <li>Sube el archivo completado para procesar las asignaciones</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <button onclick="downloadTemplate()" class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-brand-primary hover:bg-gray-50 transition-colors">
+                            <div class="flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span class="font-medium text-gray-700">Descargar Plantilla Excel</span>
+                            </div>
+                        </button>
+                        
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                            <input type="file" id="bulkAssignFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="handleBulkFile(event)">
+                            <label for="bulkAssignFile" class="cursor-pointer">
+                                <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                                <p class="text-sm font-medium text-gray-700 mb-1">Haz clic para subir o arrastra el archivo</p>
+                                <p class="text-xs text-gray-500">Excel (.xlsx, .xls) o CSV</p>
+                            </label>
+                        </div>
+                        
+                        <div id="bulkFileInfo" class="hidden bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <div>
+                                        <p id="bulkFileName" class="text-sm font-medium text-green-900"></p>
+                                        <p id="bulkFileSize" class="text-xs text-green-700"></p>
+                                    </div>
+                                </div>
+                                <button onclick="clearBulkFile()" class="text-green-600 hover:text-green-800">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6 pt-0">
+                    <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                        <button onclick="closeBulkAssignModal()" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors">
+                            Cancelar
+                        </button>
+                        <button id="processBulkBtn" onclick="processBulkAssignments()" disabled class="px-6 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            Procesar Asignaciones
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function closeBulkAssignModal() {
+    const modal = document.getElementById('bulkAssignModal');
+    if (modal) modal.remove();
+}
+
+function downloadTemplate() {
+    // Crear plantilla CSV con columnas requeridas
+    const template = [
+        ['ID Docente', 'ID Materia', 'ID Grupo', 'Horas Semanales', 'Tipo Asignación', 'Fecha Inicio', 'Fecha Fin', 'Observaciones'],
+        ['1', '1', '1', '6', 'both', '2025-01-15', '2025-06-30', 'Ejemplo de asignación'],
+        ['', '', '', '', 'theory/practice/both', 'YYYY-MM-DD', 'YYYY-MM-DD', '']
+    ];
+    
+    const csvContent = template.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'plantilla_asignaciones.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('✅ Plantilla descargada exitosamente');
+}
+
+let bulkFileData = null;
+
+function handleBulkFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    document.getElementById('bulkFileName').textContent = file.name;
+    document.getElementById('bulkFileSize').textContent = `${(file.size / 1024).toFixed(2)} KB`;
+    document.getElementById('bulkFileInfo').classList.remove('hidden');
+    document.getElementById('processBulkBtn').disabled = false;
+    
+    // Leer archivo CSV
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        bulkFileData = parseCSV(text);
+        showNotification(`✅ Archivo cargado: ${bulkFileData.length - 1} asignaciones encontradas`);
+    };
+    reader.readAsText(file);
+}
+
+function parseCSV(text) {
+    const lines = text.split('\n').filter(line => line.trim());
+    return lines.map(line => {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let char of line) {
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                values.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        values.push(current.trim());
+        return values;
+    });
+}
+
+function clearBulkFile() {
+    document.getElementById('bulkAssignFile').value = '';
+    document.getElementById('bulkFileInfo').classList.add('hidden');
+    document.getElementById('processBulkBtn').disabled = true;
+    bulkFileData = null;
+}
+
+async function processBulkAssignments() {
+    if (!bulkFileData || bulkFileData.length < 2) {
+        showNotification('❌ No hay datos para procesar', 'error');
+        return;
+    }
+    
+    const activePeriodId = 30; // Periodo activo
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    
+    // Saltar la fila de encabezados
+    for (let i = 1; i < bulkFileData.length; i++) {
+        const row = bulkFileData[i];
+        
+        // Saltar filas vacías o de ejemplo
+        if (!row[0] || row[0] === 'ID Docente' || !row[1] || !row[2]) continue;
+        
+        const data = {
+            teacher_id: parseInt(row[0]),
+            subject_id: parseInt(row[1]),
+            group_id: parseInt(row[2]),
+            period_id: activePeriodId,
+            horas_semanales: parseInt(row[3]) || 6,
+            tipo_asignacion: row[4] || 'both',
+            fecha_inicio: row[5] || null,
+            fecha_fin: row[6] || null,
+            observaciones: row[7] || null
+        };
+        
+        try {
+            const response = await fetch(`${API_BASE}/assignments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (response.ok) {
+                successCount++;
+            } else {
+                errorCount++;
+                const error = await response.json();
+                errors.push(`Fila ${i + 1}: ${error.message || 'Error desconocido'}`);
+            }
+        } catch (error) {
+            errorCount++;
+            errors.push(`Fila ${i + 1}: ${error.message}`);
+        }
+    }
+    
+    closeBulkAssignModal();
+    
+    if (errorCount === 0) {
+        showNotification(`✅ ${successCount} asignaciones creadas exitosamente`);
+    } else {
+        showNotification(`⚠️ ${successCount} exitosas, ${errorCount} con errores. Revisa la consola para detalles.`, 'error');
+        console.error('Errores en asignación masiva:', errors);
+    }
+    
+    loadAssignments();
 }
 
 // Event listeners for filters

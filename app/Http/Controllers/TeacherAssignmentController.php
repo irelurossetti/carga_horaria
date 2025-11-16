@@ -55,13 +55,18 @@ class TeacherAssignmentController extends Controller
             'subject_id' => 'nullable|integer|exists:subjects,id',
             'group_id' => 'nullable|integer|exists:groups,id',
             'period_id' => 'nullable|integer|exists:academic_periods,id',
+            'horas_semanales' => 'nullable|integer|min:1',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+            'observaciones' => 'nullable|string|max:1000',
+            'tipo_asignacion' => 'nullable|string|max:100',
         ]);
 
         $data['assigned_by'] = Auth::id();
 
         $assignment = TeacherAssignment::create($data);
 
-        return response()->json($assignment, 201);
+        return response()->json($assignment->load(['subject', 'group', 'teacher']), 201);
     }
 
     /**

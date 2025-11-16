@@ -14,13 +14,19 @@ class EnsureTeacherOrAdmin
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Admin passes
-        if ($user->hasRole('administrador')) {
+        // Verificar si tiene rol de administrador (múltiples variantes)
+        $adminRoles = ['administrador', 'ADMINISTRADOR', 'Administrador', 'admin', 'ADMIN', 'Admin', 'administrator', 'ADMINISTRATOR', 'Administrator'];
+        $hasAdminRole = $user->roles()->whereIn('name', $adminRoles)->exists();
+        
+        if ($hasAdminRole) {
             return $next($request);
         }
 
-        // Teacher must have role docente
-        if (! $user->hasRole('docente')) {
+        // Verificar si tiene rol de docente (múltiples variantes)
+        $teacherRoles = ['docente', 'DOCENTE', 'Docente', 'teacher', 'TEACHER', 'Teacher'];
+        $hasTeacherRole = $user->roles()->whereIn('name', $teacherRoles)->exists();
+        
+        if (! $hasTeacherRole) {
             return response()->json(['message' => 'Forbidden - teacher or admin only'], 403);
         }
 

@@ -123,6 +123,31 @@
         </table>
     @endif
 
+    @if($type === 'absences')
+        <table>
+            <thead>
+                <tr>
+                    <th>Docente</th>
+                    <th>Asistencias</th>
+                    <th>Ausencias</th>
+                    <th>Total Clases</th>
+                    <th>% Asistencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($data as $item)
+                <tr>
+                    <td>{{ $item->teacher_name ?? '' }}</td>
+                    <td>{{ $item->attendances ?? 0 }}</td>
+                    <td>{{ $item->absences ?? 0 }}</td>
+                    <td>{{ $item->total_classes ?? 0 }}</td>
+                    <td>{{ number_format($item->attendance_rate ?? 0, 2) }}%</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
     @if($type === 'weekly-schedule')
         <table>
             <thead>
@@ -198,27 +223,27 @@
         <div class="stats-grid">
             <div class="stat-box">
                 <div class="stat-label">Total Docentes</div>
-                <div class="stat-value">{{ $data['total_teachers'] ?? 0 }}</div>
+                <div class="stat-value">{{ $data->total_teachers ?? 0 }}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Total Estudiantes</div>
-                <div class="stat-value">{{ $data['total_students'] ?? 0 }}</div>
+                <div class="stat-value">{{ $data->total_students ?? 0 }}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Total Aulas</div>
-                <div class="stat-value">{{ $data['total_rooms'] ?? 0 }}</div>
+                <div class="stat-value">{{ $data->total_rooms ?? 0 }}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Total Materias</div>
-                <div class="stat-value">{{ $data['total_subjects'] ?? 0 }}</div>
+                <div class="stat-value">{{ $data->total_subjects ?? 0 }}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Total Grupos</div>
-                <div class="stat-value">{{ $data['total_groups'] ?? 0 }}</div>
+                <div class="stat-value">{{ $data->total_groups ?? 0 }}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Asignaciones del Período</div>
-                <div class="stat-value">{{ $data['period_assignments'] ?? 0 }}</div>
+                <div class="stat-value">{{ $data->period_assignments ?? 0 }}</div>
             </div>
         </div>
     @endif

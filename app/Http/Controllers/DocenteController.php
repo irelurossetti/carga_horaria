@@ -31,46 +31,10 @@ class DocenteController extends Controller
                 return redirect('/login')->with('error', 'No se encontró un perfil de docente asociado a este usuario.');
             }
 
-            // 2. Mapeo de Días (ISO a Español en MAYÚSCULAS)
-            // ¡¡AQUÍ ESTABA EL ERROR DE '4.md'!!
-            $dayMap = [
-                '1' => 'LUNES',
-                '2' => 'MARTES',
-                '3' => 'MIERCOLES',
-                '4' => 'JUEVES', // <-- ¡CORREGIDO!
-                '5' => 'VIERNES',
-                '6' => 'SABADO',
-                '7' => 'DOMINGO',
-            ];
-            
-            $dayOfWeekNumber = now()->isoFormat('E'); 
-            $dayOfWeekName = $dayMap[$dayOfWeekNumber] ?? 'LUNES'; // ej: 'LUNES'
-
-            // 3. Obtener horarios de HOY
-            $schedulesToday = Schedule::query()
-                ->whereHas('assignment', function($q) use ($teacher) {
-                    $q->where('teacher_id', $teacher->id);
-                })
-                ->where('day_of_week', $dayOfWeekName) // Buscamos 'LUNES', no '1'
-                ->with([
-                    'assignment.group.subject', // Esta cadena debe funcionar si Group.php está corregido
-                    'room', 
-                    'attendanceToday',
-                    'cancellation'
-                ])
-                ->orderBy('start_time')
-                ->get();
-
-            $now = now()->format('H:i:s');
-
-            // 4. Filtrar clases
-            $currentClass = $schedulesToday->filter(function($schedule) use ($now) {
-                return $schedule->start_time <= $now && $schedule->end_time >= $now;
-            })->first();
-
-            $upcomingClasses = $schedulesToday->filter(function($schedule) use ($now) {
-                return $schedule->start_time > $now;
-            });
+            // Por ahora, sin horarios, mostramos una vista vacía
+            $schedulesToday = collect([]);
+            $currentClass = null;
+            $upcomingClasses = collect([]);
             
             // 5. ¡Finalmente, cargar la vista!
             return view('docente.dashboard', compact('schedulesToday', 'currentClass', 'upcomingClasses'));

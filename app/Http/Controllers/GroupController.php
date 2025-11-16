@@ -31,7 +31,15 @@ class GroupController extends Controller
     public function index()
     {
         $this->ensureAdmin();
-        return response()->json(Group::orderBy('created_at', 'desc')->get());
+        $groups = Group::with('subject')->orderBy('created_at', 'desc')->get();
+        
+        // Agregar el nombre de la materia directamente en el objeto
+        $groups = $groups->map(function($group) {
+            $group->subject_name = $group->subject ? $group->subject->name : 'Sin materia';
+            return $group;
+        });
+        
+        return response()->json($groups);
     }
 
     /**
@@ -58,11 +66,15 @@ class GroupController extends Controller
         $this->ensureAdmin();
 
         $data = $request->validate([
-            'subject_id' => 'required|integer',
+            'subject_id' => 'required|integer|exists:subjects,id',
             'code' => 'required|string',
             'name' => 'required|string',
-            'capacity' => 'nullable|integer',
+            'capacity' => 'nullable|integer|min:1',
             'schedule' => 'nullable|string',
+            'enrolled_students' => 'nullable|integer|min:0',
+            'status' => 'nullable|string|in:active,inactive',
+            'description' => 'nullable|string',
+            'room_id' => 'nullable|integer|exists:rooms,id',
         ]);
 
         $group = Group::create($data);
@@ -115,6 +127,10 @@ class GroupController extends Controller
             'name' => 'sometimes|required|string',
             'capacity' => 'nullable|integer',
             'schedule' => 'nullable|string',
+            'enrolled_students' => 'nullable|integer|min:0',
+            'status' => 'nullable|string|in:active,inactive',
+            'description' => 'nullable|string',
+            'room_id' => 'nullable|integer',
         ]);
 
         $group->fill($data);

@@ -168,6 +168,29 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/justificaciones', function() { return view('docente.justifications'); })->name('justifications');
         Route::get('/horario-semanal', function() { return view('docente.weekly-schedule'); })->name('weekly-schedule');
         Route::get('/historial-asistencias', function() { return view('docente.attendance-history'); })->name('attendance-history');
+        Route::get('/asistencia-qr', function() { 
+            $teacher = auth()->user()->teacher;
+            $schedules = [];
+            
+            if ($teacher) {
+                $schedules = \App\Models\Schedule::with(['group.subject', 'room', 'teacher'])
+                    ->where('teacher_id', $teacher->id)
+                    ->get()
+                    ->map(function($schedule) {
+                        return [
+                            'id' => $schedule->id,
+                            'subject_name' => $schedule->group->subject->name ?? 'Sin materia',
+                            'group_name' => $schedule->group->name ?? 'Sin grupo',
+                            'day_of_week' => $schedule->day_of_week,
+                            'start_time' => substr($schedule->start_time, 0, 5),
+                            'end_time' => substr($schedule->end_time, 0, 5),
+                            'room_name' => $schedule->room->name ?? 'Sin aula'
+                        ];
+                    });
+            }
+            
+            return view('docente.attendance-qr', compact('schedules')); 
+        })->name('attendance-qr');
     });
 
     // ============================================================
@@ -250,6 +273,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('teachers/{id}/assignments', [TeacherAssignmentController::class, 'index']);
         Route::post('teachers/{id}/assignments', [TeacherAssignmentController::class, 'store']);
         Route::get('assignments', [TeacherAssignmentController::class, 'index']);
+        Route::post('assignments', [TeacherAssignmentController::class, 'store']);
         Route::get('assignments/{id}', [TeacherAssignmentController::class, 'show']);
         Route::patch('assignments/{id}', [TeacherAssignmentController::class, 'update']);
         Route::delete('assignments/{id}', [TeacherAssignmentController::class, 'destroy']);
@@ -339,6 +363,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('incidents', [IncidentController::class, 'store'])->middleware('ensure.teacher_or_admin');
         Route::get('incidents/{id}', [IncidentController::class, 'show'])->middleware('ensure.teacher_or_admin');
         Route::patch('incidents/{id}', [IncidentController::class, 'update'])->middleware('ensure.teacher_or_admin');
+        Route::delete('incidents/{id}', [IncidentController::class, 'destroy'])->middleware('ensure.teacher_or_admin');
 
         // Bitácora del Sistema
         Route::get('activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index'])->middleware('ensure.admin');
