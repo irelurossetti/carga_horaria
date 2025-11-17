@@ -6,30 +6,25 @@ FROM node:20 AS vite-builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 RUN npm run build
-
 
 # ---------------------------
 # STAGE 2 : PHP + Composer
 # ---------------------------
 FROM php:8.3-fpm AS php-builder
 
-# Instalar dependencias del sistema (incluye libpq-dev y librerías para ext-gd)
+# Instalar dependencias necesarias para GD, ZIP y PostgreSQL
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip supervisor nginx \
-    libpq-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
-    libonig-dev libxml2-dev
-
-# Configurar e instalar extensión GD
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd
-
-# Instalar PostgreSQL extension
-RUN docker-php-ext-install pdo pdo_pgsql \
-    && docker-php-ext-enable pdo_pgsql
+    git curl zip unzip libzip-dev libpq-dev \
+    libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    libonig-dev libxml2-dev supervisor nginx && \
+    docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install gd zip pdo pdo_pgsql && \
+    docker-php-ext-enable pdo_pgsql && \
+    rm -rf /var/lib/apt/lists/*
 
 # Instalar Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -44,37 +39,29 @@ COPY . .
 # Copiar build de Vite desde la etapa 1
 COPY --from=vite-builder /app/public/build /var/www/html/public/build
 
-# Permisos
+# Ajustar permisos
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-
 # ---------------------------
-# STAGE 3 : Final RUN (Nginx + PHP-FPM)
+# STAGE 3 : Final (Nginx + PHP-FPM)
 # ---------------------------
 FROM php:8.3-fpm
 
-# Instalar dependencias NECESARIAS para pdo_pgsql y gd en esta etapa
+# Instalar solo dependencias necesarias para runtime
 RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    libpq-dev libzip-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
     supervisor nginx && \
+    docker-php-ext-configure gd --with-freetype --with-jpeg && \
+    docker-php-ext-install gd zip pdo pdo_pgsql && \
     rm -rf /var/lib/apt/lists/*
-
-# Instalar extensiones nuevamente en ECS final
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd
-
-RUN docker-php-ext-install pdo pdo_pgsql
 
 WORKDIR /var/www/html
 
 # Copiar proyecto ya construido
 COPY --from=php-builder /var/www/html /var/www/html
 
-# Copiar config de nginx
+# Configuración de Nginx y Supervisor
 COPY ./docker/nginx.conf /etc/nginx/sites-available/default
-
-# Supervisor para ejecutar Nginx + PHP-FPM
 COPY ./docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 80
