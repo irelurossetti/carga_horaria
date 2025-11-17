@@ -256,13 +256,32 @@ async function generateQR() {
     }
     
     try {
+        console.log('Generando QR para schedule ID:', scheduleId);
+        
         const response = await fetch(`${API_BASE}/schedules/${scheduleId}/qrcode`, {
-            headers: { 'Accept': 'image/png' }
+            headers: { 
+                'Accept': 'image/png',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
         });
         
-        if (!response.ok) throw new Error('Error al generar QR');
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            
+            try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(errorJson.message || 'Error al generar QR');
+            } catch (e) {
+                throw new Error(`Error ${response.status}: ${errorText}`);
+            }
+        }
         
         const blob = await response.blob();
+        console.log('Blob recibido:', blob.type, blob.size);
+        
         const url = URL.createObjectURL(blob);
         
         document.getElementById('qrImage').src = url;
@@ -274,8 +293,8 @@ async function generateQR() {
         
         showNotification('✅ Código QR generado exitosamente');
     } catch (error) {
-        console.error('Error:', error);
-        showNotification('❌ Error al generar código QR', 'error');
+        console.error('Error completo:', error);
+        showNotification('❌ ' + error.message, 'error');
     }
 }
 

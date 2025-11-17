@@ -1,46 +1,30 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-[#F5F5F5]">
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Iniciar Sesión - FICCT SGA</title>
-
+    <title>Dashboard Docente - FICCT SGA</title>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Instrument Sans', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            primary: '#881F34',
-                            hover: '#6d1829'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Instrument Sans','sans-serif']},colors:{brand:{primary:'#881F34',hover:'#6d1829'}}}}}</script>
 </head>
-
-<body class="min-h-full font-sans antialiased text-neutral-900 bg-[#F5F5F5]">
-
+<body class="bg-gray-50">
+    <!-- Barra superior roja -->
     <nav class="bg-brand-primary text-white shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
+                    <div class="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/></svg>
                     </div>
-                    <span class="font-bold text-lg tracking-tight">FICCT <span class="opacity-80 font-normal">Docente</span></span>
+                    <div>
+                        <h1 class="font-bold text-lg">FICCT SGA</h1>
+                        <p class="text-xs text-white/80">GESTIÓN ACADÉMICA</p>
+                    </div>
                 </div>
                 
                 <div class="flex items-center gap-4">
-                    <span class="text-sm hidden sm:block opacity-90">
+                    <span class="text-sm hidden sm:block">
                         {{ Auth::user()->name ?? 'Docente' }}
                     </span>
                     <form method="POST" action="{{ route('logout') }}">
@@ -56,7 +40,7 @@
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <main class="max-w-7xl mx-auto p-8">
         
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
@@ -252,6 +236,10 @@
                         Gestiona tus actividades académicas desde aquí.
                     </p>
                     <div class="space-y-3 relative z-10">
+                        <a href="{{ route('docente.workload') }}" class="w-full text-left flex items-center gap-3 bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            <span>Ver Mi Carga Horaria</span>
+                        </a>
                         <a href="{{ route('docente.weekly-schedule') }}" class="w-full text-left flex items-center gap-3 bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             <span>Ver Horario Semanal Completo</span>
@@ -267,6 +255,10 @@
                         <a href="{{ route('docente.justifications') }}" class="w-full text-left flex items-center gap-3 bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             <span>Mis Justificaciones</span>
+                        </a>
+                        <a href="{{ route('docente.attendance-qr-new') }}" class="w-full text-left flex items-center gap-3 bg-white/10 hover:bg-white/20 p-3 rounded-lg transition-colors">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                            <span>Marcar Asistencia con QR</span>
                         </a>
                     </div>
                 </div>
@@ -293,6 +285,5 @@
 
         </div>
     </main>
-
 </body>
 </html>

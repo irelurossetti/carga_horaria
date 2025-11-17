@@ -135,7 +135,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/reservas', function() { return view('admin.room-reservations'); })->name('reservations.index');
         Route::get('/asistencia-docente', function() { return view('admin.attendance-by-teacher'); })->name('attendance-teacher.index');
         Route::get('/asistencia-grupo', function() { return view('admin.attendance-by-group'); })->name('attendance-group.index');
-        Route::get('/carga-materia', function() { return view('admin.workload-by-subject'); })->name('workload-subject.index');
+        Route::get('/carga-horaria', function() { return view('admin.workload'); })->name('workload.index');
         Route::get('/anuncios', function() { return view('admin.announcements'); })->name('announcements.index');
         Route::get('/incidencias', function() { return view('admin.incidents'); })->name('incidents.index');
         Route::get('/reportes', function() { return view('admin.reports'); })->name('reports.index');
@@ -191,6 +191,12 @@ Route::middleware(['auth'])->group(function () {
             
             return view('docente.attendance-qr', compact('schedules')); 
         })->name('attendance-qr');
+        
+        // Carga horaria con filtros
+        Route::get('/carga-horaria', [DocenteController::class, 'cargaHoraria'])->name('workload');
+        
+        // Asistencia con QR
+        Route::get('/asistencia-qr-nuevo', [DocenteController::class, 'attendanceQR'])->name('attendance-qr-new');
     });
 
     // ============================================================
@@ -332,6 +338,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('reports/teacher-attendance', [ReportController::class, 'teacherAttendance']);
         Route::get('reports/weekly-schedule', [ReportController::class, 'weeklySchedule']);
         Route::get('reports/available-rooms', [ReportController::class, 'availableRooms']);
+        Route::get('reports/subject-attendance', [ReportController::class, 'subjectAttendance']);
         Route::get('reports/group-attendance', [ReportController::class, 'groupAttendance']);
         Route::get('reports/general-stats', [ReportController::class, 'generalStats']);
         Route::get('reports/absences', [ReportController::class, 'absences']);
@@ -371,6 +378,17 @@ Route::middleware(['auth'])->group(function () {
         Route::get('activity-logs/export-excel', [\App\Http\Controllers\ActivityLogController::class, 'exportExcel'])->middleware('ensure.admin');
         Route::get('activity-logs/export-pdf', [\App\Http\Controllers\ActivityLogController::class, 'exportPdf'])->middleware('ensure.admin');
         Route::delete('activity-logs/clear-old', [\App\Http\Controllers\ActivityLogController::class, 'clearOld'])->middleware('ensure.admin');
+        
+        // Carga horaria docente
+        Route::get('docente/workload', [DocenteController::class, 'getCargaHoraria'])->middleware('ensure.teacher_or_admin');
+        Route::get('docente/workload/export-pdf', [DocenteController::class, 'exportWorkloadPDF'])->middleware('ensure.teacher_or_admin');
+        Route::get('docente/workload/export-excel', [DocenteController::class, 'exportWorkloadExcel'])->middleware('ensure.teacher_or_admin');
+        
+        // Carga horaria general (por docente, materia, grupo)
+        Route::get('workload/teacher', [\App\Http\Controllers\WorkloadController::class, 'byTeacher']);
+        Route::get('workload/subject', [\App\Http\Controllers\WorkloadController::class, 'bySubject']);
+        Route::get('workload/group', [\App\Http\Controllers\WorkloadController::class, 'byGroup']);
+        Route::get('workload/{type}/export-pdf', [\App\Http\Controllers\WorkloadController::class, 'exportPDF']);
     }); // <-- FIN DEL PREFIJO API
 
 }); // <-- ESTA ES LA LLAVE DE CIERRE PRINCIPAL DEL MIDDLEWARE 'AUTH'

@@ -93,6 +93,21 @@
                 </div>
             </div>
 
+            <!-- Asistencia por Materia -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer" onclick="showReport('subject-attendance')">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">Asistencia por Materia</h3>
+                        <p class="text-sm text-gray-500">Por materia</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Asistencia por Grupo -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer" onclick="showReport('group-attendance')">
                 <div class="flex items-center gap-4">
@@ -163,8 +178,42 @@
                 </div>
             </div>
             
-            <!-- Filters -->
-            <div id="reportFilters" class="mb-6"></div>
+            <!-- Filtros Dinámicos -->
+            <div id="reportFilters" class="mb-6 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <h3 class="text-sm font-semibold text-gray-700 mb-3">🔍 Filtros Dinámicos</h3>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Período Académico -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Período Académico</label>
+                        <select id="filterPeriod" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                            <option value="">Todos los períodos</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Rango de Fechas -->
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Fecha Inicio</label>
+                        <input type="date" id="filterDateStart" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Fecha Fin</label>
+                        <input type="date" id="filterDateEnd" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    </div>
+                    
+                    <!-- Filtro específico según tipo de reporte -->
+                    <div id="specificFilter"></div>
+                </div>
+                
+                <div class="flex gap-2 mt-4">
+                    <button onclick="applyFilters()" class="px-4 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded-lg text-sm font-medium transition-colors">
+                        Aplicar Filtros
+                    </button>
+                    <button onclick="clearFilters()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                        Limpiar
+                    </button>
+                </div>
+            </div>
             
             <!-- Data Display -->
             <div id="reportData"></div>
@@ -190,7 +239,6 @@ async function showReport(reportType) {
     currentReport = reportType;
     const content = document.getElementById('reportContent');
     const title = document.getElementById('reportTitle');
-    const filters = document.getElementById('reportFilters');
     const data = document.getElementById('reportData');
     
     content.classList.remove('hidden');
@@ -200,17 +248,203 @@ async function showReport(reportType) {
         'teacher-attendance': 'Reporte de Asistencia Docente',
         'weekly-schedule': 'Horarios Semanales',
         'available-rooms': 'Aulas Disponibles',
+        'subject-attendance': 'Asistencia por Materia',
         'group-attendance': 'Asistencia por Grupo',
-        'general-stats': 'Estadísticas Generales del Sistema'
+        'general-stats': 'Estadísticas Generales del Sistema',
+        'absences': 'Reporte de Ausencias'
     };
     
     title.textContent = titles[reportType] || 'Reporte';
     
+    // Cargar períodos académicos
+    await loadAcademicPeriods();
+    
+    // Configurar filtro específico según tipo de reporte
+    setupSpecificFilter(reportType);
+    
     // Show loading
     data.innerHTML = '<div class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div><p class="mt-4 text-gray-500">Cargando datos...</p></div>';
     
+    // Cargar datos iniciales
+    await loadReportData();
+}
+
+async function loadAcademicPeriods() {
     try {
-        const response = await fetch(`${API_BASE}/reports/${reportType}`, {
+        const response = await fetch(`${API_BASE}/academic-periods`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const periods = await response.json();
+            const select = document.getElementById('filterPeriod');
+            select.innerHTML = '<option value="">Todos los períodos</option>';
+            
+            periods.forEach(period => {
+                const option = document.createElement('option');
+                option.value = period.id;
+                option.textContent = `${period.name} (${period.code || ''})`;
+                if (period.is_active) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar períodos:', error);
+    }
+}
+
+function setupSpecificFilter(reportType) {
+    const container = document.getElementById('specificFilter');
+    
+    if (reportType === 'teacher-workload' || reportType === 'teacher-attendance' || reportType === 'absences') {
+        container.innerHTML = `
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Docente</label>
+                <select id="filterTeacher" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    <option value="">Todos los docentes</option>
+                </select>
+            </div>
+        `;
+        loadTeachersForFilter();
+    } else if (reportType === 'subject-attendance') {
+        container.innerHTML = `
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Materia</label>
+                <select id="filterSubject" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    <option value="">Todas las materias</option>
+                </select>
+            </div>
+        `;
+        loadSubjectsForFilter();
+    } else if (reportType === 'group-attendance') {
+        container.innerHTML = `
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Grupo</label>
+                <select id="filterGroup" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent">
+                    <option value="">Todos los grupos</option>
+                </select>
+            </div>
+        `;
+        loadGroupsForFilter();
+    } else {
+        container.innerHTML = '';
+    }
+}
+
+async function loadTeachersForFilter() {
+    try {
+        const response = await fetch(`${API_BASE}/teachers`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const teachers = await response.json();
+            const select = document.getElementById('filterTeacher');
+            
+            teachers.forEach(teacher => {
+                const option = document.createElement('option');
+                option.value = teacher.id;
+                option.textContent = teacher.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar docentes:', error);
+    }
+}
+
+async function loadSubjectsForFilter() {
+    try {
+        const response = await fetch(`${API_BASE}/subjects`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const subjects = await response.json();
+            const select = document.getElementById('filterSubject');
+            
+            subjects.forEach(subject => {
+                const option = document.createElement('option');
+                option.value = subject.id;
+                option.textContent = `${subject.name} (${subject.code || ''})`;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar materias:', error);
+    }
+}
+
+async function loadGroupsForFilter() {
+    try {
+        const response = await fetch(`${API_BASE}/groups`, {
+            headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.ok) {
+            const groups = await response.json();
+            const select = document.getElementById('filterGroup');
+            
+            groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.id;
+                option.textContent = group.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar grupos:', error);
+    }
+}
+
+async function applyFilters() {
+    await loadReportData();
+}
+
+function clearFilters() {
+    document.getElementById('filterPeriod').value = '';
+    document.getElementById('filterDateStart').value = '';
+    document.getElementById('filterDateEnd').value = '';
+    
+    const teacherFilter = document.getElementById('filterTeacher');
+    const subjectFilter = document.getElementById('filterSubject');
+    const groupFilter = document.getElementById('filterGroup');
+    
+    if (teacherFilter) teacherFilter.value = '';
+    if (subjectFilter) subjectFilter.value = '';
+    if (groupFilter) groupFilter.value = '';
+    
+    loadReportData();
+}
+
+async function loadReportData() {
+    const data = document.getElementById('reportData');
+    data.innerHTML = '<div class="text-center py-12"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div><p class="mt-4 text-gray-500">Cargando datos...</p></div>';
+    
+    try {
+        // Construir URL con filtros
+        let url = `${API_BASE}/reports/${currentReport}?`;
+        
+        const period = document.getElementById('filterPeriod').value;
+        const dateStart = document.getElementById('filterDateStart').value;
+        const dateEnd = document.getElementById('filterDateEnd').value;
+        
+        if (period) url += `period_id=${period}&`;
+        if (dateStart) url += `date_start=${dateStart}&`;
+        if (dateEnd) url += `date_end=${dateEnd}&`;
+        
+        // Filtros específicos
+        const teacherFilter = document.getElementById('filterTeacher');
+        const subjectFilter = document.getElementById('filterSubject');
+        const groupFilter = document.getElementById('filterGroup');
+        
+        if (teacherFilter && teacherFilter.value) url += `teacher_id=${teacherFilter.value}&`;
+        if (subjectFilter && subjectFilter.value) url += `subject_id=${subjectFilter.value}&`;
+        if (groupFilter && groupFilter.value) url += `group_id=${groupFilter.value}&`;
+        
+        const response = await fetch(url, {
             headers: { 'Accept': 'application/json' }
         });
         
@@ -222,7 +456,7 @@ async function showReport(reportType) {
         
         const result = await response.json();
         console.log('Report data:', result);
-        renderReport(reportType, result.data);
+        renderReport(currentReport, result.data);
     } catch (error) {
         console.error('Error completo:', error);
         data.innerHTML = `<div class="text-center py-12 text-red-600">Error al cargar el reporte: ${error.message}<br><small>Revisa la consola para más detalles</small></div>`;
@@ -252,6 +486,9 @@ function renderReport(type, data) {
         case 'available-rooms':
             html = renderAvailableRoomsReport(data);
             break;
+        case 'subject-attendance':
+            html = renderSubjectAttendanceReport(data);
+            break;
         case 'group-attendance':
             html = renderGroupAttendanceReport(data);
             break;
@@ -271,6 +508,8 @@ function renderReport(type, data) {
             renderWorkloadChart(data);
         } else if (type === 'teacher-attendance') {
             renderAttendanceChart(data);
+        } else if (type === 'subject-attendance') {
+            renderSubjectAttendanceChart(data);
         } else if (type === 'group-attendance') {
             renderGroupAttendanceChart(data);
         } else if (type === 'general-stats') {
@@ -462,6 +701,46 @@ function renderAvailableRoomsReport(data) {
                     <span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">Disponible</span>
                 </div>
             `).join('')}
+        </div>
+    `;
+}
+
+function renderSubjectAttendanceReport(data) {
+    return `
+        <!-- Gráfico de Asistencia por Materia -->
+        <div class="mb-8 bg-gray-50 p-6 rounded-lg">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Asistencia por Materia</h3>
+            <div class="bg-white p-4 rounded-lg">
+                <canvas id="subjectAttendanceChart" height="80"></canvas>
+            </div>
+        </div>
+
+        <!-- Tabla de Asistencia por Materia -->
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Materia</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Código</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total Clases</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Presentes</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ausentes</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">% Asistencia</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    ${data.map(row => `
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 font-medium">${row.subject_name}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600">${row.subject_code || 'N/A'}</td>
+                            <td class="px-6 py-4 text-center">${row.total_classes || 0}</td>
+                            <td class="px-6 py-4 text-center text-green-600">${row.present_count || 0}</td>
+                            <td class="px-6 py-4 text-center text-red-600">${row.absent_count || 0}</td>
+                            <td class="px-6 py-4 text-center font-bold">${row.attendance_percentage || 0}%</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
         </div>
     `;
 }
@@ -759,6 +1038,64 @@ function renderAttendanceChart(data) {
     });
 }
 
+// Función para renderizar gráfico de asistencia por materia
+function renderSubjectAttendanceChart(data) {
+    const ctx = document.getElementById('subjectAttendanceChart');
+    if (!ctx) return;
+    
+    if (window.subjectAttendanceChartInstance) {
+        window.subjectAttendanceChartInstance.destroy();
+    }
+    
+    window.subjectAttendanceChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: data.map(d => d.subject_name),
+            datasets: [
+                {
+                    label: 'Presentes',
+                    data: data.map(d => d.present_count || 0),
+                    backgroundColor: '#10b981',
+                    borderColor: '#059669',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Ausentes',
+                    data: data.map(d => d.absent_count || 0),
+                    backgroundColor: '#ef4444',
+                    borderColor: '#dc2626',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Cantidad'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Materias'
+                    }
+                }
+            }
+        }
+    });
+}
+
 // Función para renderizar gráfico de asistencia por grupo
 function renderGroupAttendanceChart(data) {
     const ctx = document.getElementById('groupAttendanceChart');
@@ -862,6 +1199,7 @@ function closeReport() {
     // Destruir todos los gráficos
     if (window.workloadChartInstance) window.workloadChartInstance.destroy();
     if (window.attendanceChartInstance) window.attendanceChartInstance.destroy();
+    if (window.subjectAttendanceChartInstance) window.subjectAttendanceChartInstance.destroy();
     if (window.groupAttendanceChartInstance) window.groupAttendanceChartInstance.destroy();
     if (window.resourcesChartInstance) window.resourcesChartInstance.destroy();
     if (window.absencesBarChartInstance) window.absencesBarChartInstance.destroy();
@@ -895,6 +1233,64 @@ function exportReport(format) {
     typeInput.name = 'type';
     typeInput.value = currentReport;
     form.appendChild(typeInput);
+    
+    // Agregar filtros
+    const period = document.getElementById('filterPeriod').value;
+    const dateStart = document.getElementById('filterDateStart').value;
+    const dateEnd = document.getElementById('filterDateEnd').value;
+    
+    if (period) {
+        const periodInput = document.createElement('input');
+        periodInput.type = 'hidden';
+        periodInput.name = 'period_id';
+        periodInput.value = period;
+        form.appendChild(periodInput);
+    }
+    
+    if (dateStart) {
+        const dateStartInput = document.createElement('input');
+        dateStartInput.type = 'hidden';
+        dateStartInput.name = 'date_start';
+        dateStartInput.value = dateStart;
+        form.appendChild(dateStartInput);
+    }
+    
+    if (dateEnd) {
+        const dateEndInput = document.createElement('input');
+        dateEndInput.type = 'hidden';
+        dateEndInput.name = 'date_end';
+        dateEndInput.value = dateEnd;
+        form.appendChild(dateEndInput);
+    }
+    
+    // Filtros específicos
+    const teacherFilter = document.getElementById('filterTeacher');
+    const subjectFilter = document.getElementById('filterSubject');
+    const groupFilter = document.getElementById('filterGroup');
+    
+    if (teacherFilter && teacherFilter.value) {
+        const teacherInput = document.createElement('input');
+        teacherInput.type = 'hidden';
+        teacherInput.name = 'teacher_id';
+        teacherInput.value = teacherFilter.value;
+        form.appendChild(teacherInput);
+    }
+    
+    if (subjectFilter && subjectFilter.value) {
+        const subjectInput = document.createElement('input');
+        subjectInput.type = 'hidden';
+        subjectInput.name = 'subject_id';
+        subjectInput.value = subjectFilter.value;
+        form.appendChild(subjectInput);
+    }
+    
+    if (groupFilter && groupFilter.value) {
+        const groupInput = document.createElement('input');
+        groupInput.type = 'hidden';
+        groupInput.name = 'group_id';
+        groupInput.value = groupFilter.value;
+        form.appendChild(groupInput);
+    }
     
     // Agregar al body, enviar y eliminar
     document.body.appendChild(form);

@@ -194,6 +194,33 @@
         </table>
     @endif
 
+    @if($type === 'subject-attendance')
+        <table>
+            <thead>
+                <tr>
+                    <th>Materia</th>
+                    <th>Código</th>
+                    <th>Total Clases</th>
+                    <th>Presentes</th>
+                    <th>Ausentes</th>
+                    <th>% Asistencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($data as $item)
+                <tr>
+                    <td>{{ $item->subject_name ?? '' }}</td>
+                    <td>{{ $item->subject_code ?? 'N/A' }}</td>
+                    <td>{{ $item->total_classes ?? 0 }}</td>
+                    <td>{{ $item->present_count ?? 0 }}</td>
+                    <td>{{ $item->absent_count ?? 0 }}</td>
+                    <td>{{ $item->attendance_percentage ?? 0 }}%</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    @endif
+
     @if($type === 'group-attendance')
         <table>
             <thead>
