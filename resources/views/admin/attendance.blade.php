@@ -330,8 +330,8 @@ function populateTeacherSelects() {
         `<option value="${t.id}">${t.name}</option>`
     ).join('');
     
-    teacherFilterSelect.innerHTML = '<option value="">Todos los docentes</option>' + teacherOptions;
-    attendanceTeacherSelect.innerHTML = '<option value="">Seleccionar docente</option>' + teacherOptions;
+    if (teacherFilterSelect) teacherFilterSelect.innerHTML = '<option value="">Todos los docentes</option>' + teacherOptions;
+    if (attendanceTeacherSelect) attendanceTeacherSelect.innerHTML = '<option value="">Seleccionar docente</option>' + teacherOptions;
 }
 
 function populateSubjectSelects() {
@@ -342,15 +342,18 @@ function populateSubjectSelects() {
         `<option value="${s.id}">${s.code} - ${s.name}</option>`
     ).join('');
     
-    subjectFilterSelect.innerHTML = '<option value="">Todas las materias</option>' + subjectOptions;
-    attendanceSubjectSelect.innerHTML = '<option value="">Seleccionar materia</option>' + subjectOptions;
+    if (subjectFilterSelect) subjectFilterSelect.innerHTML = '<option value="">Todas las materias</option>' + subjectOptions;
+    if (attendanceSubjectSelect) attendanceSubjectSelect.innerHTML = '<option value="">Seleccionar materia</option>' + subjectOptions;
 }
 
 async function loadGroupsBySubject() {
-    const subjectId = document.getElementById('attendanceSubject').value;
+    const attendanceSubjectEl = document.getElementById('attendanceSubject');
+    if (!attendanceSubjectEl) return;
+    const subjectId = attendanceSubjectEl.value;
     
     if (!subjectId) {
-        document.getElementById('attendanceGroup').innerHTML = '<option value="">Seleccionar grupo</option>';
+        const attendanceGroupEl = document.getElementById('attendanceGroup');
+        if (attendanceGroupEl) attendanceGroupEl.innerHTML = '<option value="">Seleccionar grupo</option>';
         return;
     }
     
@@ -369,7 +372,7 @@ async function loadGroupsBySubject() {
         }
         
         const groupSelect = document.getElementById('attendanceGroup');
-        groupSelect.innerHTML = '<option value="">Seleccionar grupo</option>' + 
+        if (groupSelect) groupSelect.innerHTML = '<option value="">Seleccionar grupo</option>' + 
             groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
     } catch (error) {
         console.error('Error loading groups:', error);
@@ -380,16 +383,19 @@ function renderAttendances() {
     const tbody = document.getElementById('attendanceTable');
     
     if (filteredAttendances.length === 0) {
-        tbody.innerHTML = `
+        if (tbody) {
+            tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="px-6 py-12 text-center text-gray-500">
                     No se encontraron registros de asistencia
                 </td>
             </tr>
-        `;
+            `;
+        }
         return;
     }
     
+    if (!tbody) return;
     tbody.innerHTML = filteredAttendances.map(attendance => {
         const statusConfig = {
             present: { color: 'bg-green-100 text-green-800', label: 'Presente', icon: '✓' },
@@ -454,12 +460,16 @@ function updateStats() {
     const late = todayAttendances.filter(a => a.status === 'late').length;
     const total = todayAttendances.length;
     
-    document.getElementById('todayAttendance').textContent = present;
-    document.getElementById('todayAbsences').textContent = absent;
-    document.getElementById('todayLate').textContent = late;
+    const todayAttendanceEl = document.getElementById('todayAttendance');
+    const todayAbsencesEl = document.getElementById('todayAbsences');
+    const todayLateEl = document.getElementById('todayLate');
+    if (todayAttendanceEl) todayAttendanceEl.textContent = present;
+    if (todayAbsencesEl) todayAbsencesEl.textContent = absent;
+    if (todayLateEl) todayLateEl.textContent = late;
     
     const rate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
-    document.getElementById('attendanceRate').textContent = rate + '%';
+    const attendanceRateEl = document.getElementById('attendanceRate');
+    if (attendanceRateEl) attendanceRateEl.textContent = rate + '%';
 }
 
 // Funciones de visualización y gestión (sin registro manual)
@@ -513,20 +523,30 @@ async function deleteAttendance(id) {
 }
 
 // Form submission
-document.getElementById('attendanceForm').addEventListener('submit', async (e) => {
+const attendanceFormElement = document.getElementById('attendanceForm');
+if (attendanceFormElement) {
+    attendanceFormElement.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const attendanceId = document.getElementById('attendanceId').value;
+    const attendanceId = document.getElementById('attendanceId')?.value || '';
+    const teacherVal = document.getElementById('attendanceTeacher')?.value || '';
+    const subjectVal = document.getElementById('attendanceSubject')?.value || '';
+    const groupVal = document.getElementById('attendanceGroup')?.value || '';
+    const startTimeVal = document.getElementById('attendanceStartTime')?.value || '';
+    const endTimeVal = document.getElementById('attendanceEndTime')?.value || '';
+    const checkTimeVal = document.getElementById('attendanceCheckTime')?.value || '';
+    const statusChecked = document.querySelector('input[name="attendanceStatus"]:checked');
+    const notesVal = document.getElementById('attendanceNotes')?.value || '';
     const data = {
-        teacher_id: parseInt(document.getElementById('attendanceTeacher').value),
-        date: document.getElementById('attendanceDate').value,
-        subject_id: parseInt(document.getElementById('attendanceSubject').value),
-        group_id: parseInt(document.getElementById('attendanceGroup').value),
-        start_time: document.getElementById('attendanceStartTime').value,
-        end_time: document.getElementById('attendanceEndTime').value,
-        check_time: document.getElementById('attendanceCheckTime').value,
-        status: document.querySelector('input[name="attendanceStatus"]:checked').value,
-        notes: document.getElementById('attendanceNotes').value
+        teacher_id: teacherVal ? parseInt(teacherVal) : null,
+        date: document.getElementById('attendanceDate')?.value || '',
+        subject_id: subjectVal ? parseInt(subjectVal) : null,
+        group_id: groupVal ? parseInt(groupVal) : null,
+        start_time: startTimeVal,
+        end_time: endTimeVal,
+        check_time: checkTimeVal,
+        status: statusChecked ? statusChecked.value : null,
+        notes: notesVal
     };
     
     try {
@@ -556,7 +576,8 @@ document.getElementById('attendanceForm').addEventListener('submit', async (e) =
         console.error('Error:', error);
         showNotification('❌ ' + error.message, 'error');
     }
-});
+    });
+}
 
 function applyFilters() {
     const date = document.getElementById('dateFilter').value;
@@ -635,7 +656,10 @@ function exportAttendance() {
 }
 
 // Set today's date as default
-document.getElementById('dateFilter').valueAsDate = new Date();
+const dateFilterEl = document.getElementById('dateFilter');
+if (dateFilterEl) {
+    dateFilterEl.valueAsDate = new Date();
+}
 
 // Load initial data
 Promise.all([loadAttendances(), loadTeachers(), loadSubjects()]);
