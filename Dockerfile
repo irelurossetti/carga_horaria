@@ -17,7 +17,7 @@ RUN npm run build
 # ---------------------------
 FROM php:8.3-fpm AS php-builder
 
-# Instalar dependencias del sistema
+# Instalar dependencias del sistema (incluye libpq-dev AQUÍ también)
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libpq-dev libpng-dev \
     libonig-dev libxml2-dev supervisor nginx && \
@@ -46,10 +46,14 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # ---------------------------
 FROM php:8.3-fpm
 
-RUN apt-get update && apt-get install -y supervisor nginx && \
+# Instalar dependencias NECESARIAS para compilar pdo_pgsql
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    supervisor \
+    nginx && \
     rm -rf /var/lib/apt/lists/*
 
-# Config PHP
+# Compilar extensiones de PHP (ahora sí funciona sin error)
 RUN docker-php-ext-install pdo pdo_pgsql
 
 WORKDIR /var/www/html
