@@ -17,12 +17,19 @@ RUN npm run build
 # ---------------------------
 FROM php:8.3-fpm AS php-builder
 
-# Instalar dependencias del sistema (incluye libpq-dev AQUÍ también)
+# Instalar dependencias del sistema (incluye libpq-dev y librerías para ext-gd)
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libpq-dev libpng-dev \
-    libonig-dev libxml2-dev supervisor nginx && \
-    docker-php-ext-install pdo pdo_pgsql && \
-    docker-php-ext-enable pdo_pgsql
+    git curl zip unzip supervisor nginx \
+    libpq-dev libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    libonig-dev libxml2-dev
+
+# Configurar e instalar extensión GD
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd
+
+# Instalar PostgreSQL extension
+RUN docker-php-ext-install pdo pdo_pgsql \
+    && docker-php-ext-enable pdo_pgsql
 
 # Instalar Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -46,14 +53,17 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 # ---------------------------
 FROM php:8.3-fpm
 
-# Instalar dependencias NECESARIAS para compilar pdo_pgsql
+# Instalar dependencias NECESARIAS para pdo_pgsql y gd en esta etapa
 RUN apt-get update && apt-get install -y \
     libpq-dev \
-    supervisor \
-    nginx && \
+    libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
+    supervisor nginx && \
     rm -rf /var/lib/apt/lists/*
 
-# Compilar extensiones de PHP (ahora sí funciona sin error)
+# Instalar extensiones nuevamente en ECS final
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd
+
 RUN docker-php-ext-install pdo pdo_pgsql
 
 WORKDIR /var/www/html
