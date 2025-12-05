@@ -29,4 +29,14 @@ class Reservation extends Model
     {
         return $this->belongsTo(\App\Models\Teacher::class, 'teacher_id');
     }
+
+    /**
+     * Relación muchos a muchos con Resource
+     */
+    public function resources()
+    {
+        return $this->belongsToMany(Resource::class, 'reservation_resources')
+            ->withPivot('quantity', 'notes')
+            ->withTimestamps();
+    }
 }

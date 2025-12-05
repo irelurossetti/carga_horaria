@@ -7,21 +7,29 @@ use Illuminate\Database\Eloquent\Model;
 class Attendance extends Model
 {
     protected $table = 'public.attendances';
-    // 'attendance_time' debe ser manejado por $timestamps
     public $timestamps = true;
-    const CREATED_AT = 'attendance_time'; // Asumiendo que 'attendance_time' es tu 'created_at'
-    const UPDATED_AT = null; // Asumiendo que no hay 'updated_at'
 
 
     protected $fillable = [
         'schedule_id',
         'teacher_id',
+        'date',
+        'time',
         'status', // 'presente', 'ausente', 'licencia'
-        'attendance_time'
+        'notes',
+        'recorded_by',
+        'is_substitute',
+        'original_teacher_id',
+        'substitute_teacher_id',
+        'external_substitute_name',
+        'external_substitute_email',
+        'external_substitute_phone'
     ];
 
     protected $casts = [
-        'attendance_time' => 'datetime',
+        'date' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     /**
@@ -38,5 +46,29 @@ class Attendance extends Model
     public function teacher()
     {
         return $this->belongsTo(Teacher::class, 'teacher_id');
+    }
+
+    /**
+     * Relación con el docente original (cuando hay suplencia)
+     */
+    public function originalTeacher()
+    {
+        return $this->belongsTo(Teacher::class, 'original_teacher_id');
+    }
+
+    /**
+     * Relación con el docente suplente
+     */
+    public function substituteTeacher()
+    {
+        return $this->belongsTo(Teacher::class, 'substitute_teacher_id');
+    }
+
+    /**
+     * Relación muchos a muchos con SyllabusTopic (una asistencia puede tener muchos temas)
+     */
+    public function topics()
+    {
+        return $this->belongsToMany(SyllabusTopic::class, 'attendance_syllabus_topic');
     }
 }

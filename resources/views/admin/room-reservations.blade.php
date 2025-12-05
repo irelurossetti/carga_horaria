@@ -147,6 +147,20 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">Motivo de la Reserva *</label>
                     <textarea id="reason" required rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary" placeholder="Describe el motivo de la reserva..."></textarea>
                 </div>
+                
+                <!-- Sección de Recursos Físicos -->
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <label class="block text-sm font-medium text-gray-700">Recursos Físicos (Opcional)</label>
+                        <button type="button" onclick="addResourceRow()" class="text-sm text-brand-primary hover:text-brand-primary-dark">
+                            <i class="fas fa-plus mr-1"></i>Agregar Recurso
+                        </button>
+                    </div>
+                    <div id="resourcesContainer" class="space-y-2">
+                        <!-- Recursos dinámicos -->
+                    </div>
+                </div>
+                
                 <div class="flex gap-3 pt-4">
                     <button type="submit" class="flex-1 px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-primary-dark transition-colors">
                         <i class="fas fa-save mr-2"></i>Crear Reserva
@@ -184,49 +198,90 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function loadReservations() {
+    console.log('Cargando reservas desde API...');
     try {
-        // Simulación - reemplazar con API real
-        reservations = [
-            {
-                id: 1,
-                room: 'Aula 301',
-                requester: 'Dr. Juan Pérez',
-                date: '2025-11-15',
-                start_time: '14:00',
-                end_time: '16:00',
-                reason: 'Clase de recuperación',
-                status: 'pending'
+        const response = await fetch('/api/reservations', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            {
-                id: 2,
-                room: 'Lab 102',
-                requester: 'Dra. María García',
-                date: '2025-11-16',
-                start_time: '10:00',
-                end_time: '12:00',
-                reason: 'Práctica adicional',
-                status: 'approved'
-            }
-        ];
+            credentials: 'same-origin'
+        });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Reservas recibidas:', data);
+        
+        // Transformar datos de la API al formato esperado
+        reservations = (data.data || data || []).map(r => ({
+            id: r.id,
+            room: r.room?.name || 'N/A',
+            room_id: r.room_id,
+            requester: r.teacher?.name || 'Admin',
+            date: r.reserved_at ? r.reserved_at.split(' ')[0] : '',
+            start_time: r.reserved_at ? r.reserved_at.split(' ')[1].substring(0, 5) : '',
+            end_time: r.expires_at ? r.expires_at.split(' ')[1].substring(0, 5) : '',
+            reason: r.notes || '',
+            status: 'approved', // Por defecto aprobada
+            resources: r.resources || []
+        }));
+        
+        console.log('Reservas transformadas:', reservations);
         updateStats();
         displayReservations(reservations);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error cargando reservas:', error);
+        reservations = [];
+        updateStats();
+        displayReservations(reservations);
     }
 }
 
 async function loadRooms() {
+    console.log('Cargando aulas...');
     try {
-        const response = await fetch('/api/rooms');
+        const response = await fetch('/api/rooms', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
-        rooms = data.data || [];
+        console.log('Datos recibidos:', data);
+        
+        rooms = data.data || data || [];
+        console.log('Total aulas:', rooms.length);
         
         const select = document.getElementById('roomId');
-        select.innerHTML = '<option value="">Seleccionar aula...</option>' +
-            rooms.map(room => `<option value="${room.id}">${room.name} (Cap: ${room.capacity})</option>`).join('');
+        if (!select) {
+            console.error('Elemento roomId no encontrado');
+            return;
+        }
+        
+        if (rooms.length === 0) {
+            select.innerHTML = '<option value="">No hay aulas disponibles</option>';
+        } else {
+            select.innerHTML = '<option value="">Seleccionar aula...</option>' +
+                rooms.map(room => `<option value="${room.id}">${room.name} (Cap: ${room.capacity || 'N/A'})</option>`).join('');
+        }
+        console.log('Aulas cargadas exitosamente');
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error cargando aulas:', error);
+        const select = document.getElementById('roomId');
+        if (select) {
+            select.innerHTML = '<option value="">Error al cargar aulas</option>';
+        }
     }
 }
 
@@ -307,23 +362,55 @@ function closeNewReservation() {
 async function handleSubmit(e) {
     e.preventDefault();
     
+    const date = document.getElementById('reservationDate').value;
+    const startTime = document.getElementById('startTime').value;
+    const endTime = document.getElementById('endTime').value;
+    
     const formData = {
-        room_id: document.getElementById('roomId').value,
-        date: document.getElementById('reservationDate').value,
-        start_time: document.getElementById('startTime').value,
-        end_time: document.getElementById('endTime').value,
-        reason: document.getElementById('reason').value
+        room_id: parseInt(document.getElementById('roomId').value),
+        reserved_at: `${date} ${startTime}:00`,
+        expires_at: `${date} ${endTime}:00`,
+        notes: document.getElementById('reason').value,
+        resources: getSelectedResources()
     };
     
+    console.log('Enviando reserva:', formData);
+    
     try {
-        // Simulación - reemplazar con API real
-        console.log('Creando reserva:', formData);
-        alert('Reserva creada exitosamente');
-        closeNewReservation();
-        loadReservations();
+        const response = await fetch('/api/reservations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(formData)
+        });
+        
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Reserva creada:', data);
+            alert('✅ Reserva creada exitosamente' + (formData.resources.length > 0 ? ' con ' + formData.resources.length + ' recurso(s) asignado(s)' : ''));
+            closeNewReservation();
+            loadReservations();
+        } else {
+            const error = await response.json();
+            console.error('Error del servidor:', error);
+            
+            if (error.unavailable_resources) {
+                const resourceNames = error.unavailable_resources.map(r => r.name).join(', ');
+                alert('❌ ' + error.message + ':\n' + resourceNames);
+            } else {
+                alert('❌ Error: ' + (error.message || 'No se pudo crear la reserva'));
+            }
+        }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error al crear la reserva');
+        console.error('Error de red:', error);
+        alert('❌ Error de conexión al crear la reserva');
     }
 }
 
@@ -387,5 +474,97 @@ function filterReservations() {
     
     displayReservations(filtered);
 }
+
+// ============================================
+// FUNCIONES PARA RECURSOS FÍSICOS
+// ============================================
+let availableResources = [];
+
+async function loadAvailableResources() {
+    try {
+        const response = await fetch('/api/resources?status=Disponible', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+        
+        if (response.ok) {
+            availableResources = await response.json();
+        }
+    } catch (error) {
+        console.error('Error cargando recursos:', error);
+    }
+}
+
+function addResourceRow() {
+    const container = document.getElementById('resourcesContainer');
+    const rowId = 'resource-row-' + Date.now();
+    
+    const row = document.createElement('div');
+    row.id = rowId;
+    row.className = 'flex gap-2 items-start';
+    row.innerHTML = `
+        <div class="flex-1">
+            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary">
+                <option value="">Seleccionar recurso...</option>
+                ${availableResources.map(r => `
+                    <option value="${r.id}" data-name="${r.name}" data-type="${r.type}">
+                        ${r.name} (${r.type})
+                    </option>
+                `).join('')}
+            </select>
+        </div>
+        <div class="w-24">
+            <input type="number" min="1" value="1" placeholder="Cant." 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary">
+        </div>
+        <div class="flex-1">
+            <input type="text" placeholder="Notas (opcional)" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-primary">
+        </div>
+        <button type="button" onclick="removeResourceRow('${rowId}')" 
+                class="px-3 py-2 text-red-600 hover:text-red-800">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    container.appendChild(row);
+}
+
+function removeResourceRow(rowId) {
+    document.getElementById(rowId).remove();
+}
+
+function getSelectedResources() {
+    const container = document.getElementById('resourcesContainer');
+    const rows = container.querySelectorAll('[id^="resource-row-"]');
+    const resources = [];
+    
+    rows.forEach(row => {
+        const select = row.querySelector('select');
+        const quantity = row.querySelector('input[type="number"]');
+        const notes = row.querySelector('input[type="text"]');
+        
+        if (select.value) {
+            resources.push({
+                id: parseInt(select.value),
+                quantity: parseInt(quantity.value) || 1,
+                notes: notes.value || ''
+            });
+        }
+    });
+    
+    return resources;
+}
+
+// Modificar showNewReservation para cargar recursos
+const originalShowNewReservation = showNewReservation;
+showNewReservation = function() {
+    originalShowNewReservation();
+    loadAvailableResources();
+    document.getElementById('resourcesContainer').innerHTML = '';
+};
 </script>
 @endsection

@@ -30,7 +30,8 @@ class SubjectController extends Controller
      */
     public function index()
     {
-        $this->ensureAdmin();
+        // Permitir acceso a usuarios autenticados
+        // $this->ensureAdmin();
         return response()->json(Subject::orderBy('created_at', 'desc')->get());
     }
 

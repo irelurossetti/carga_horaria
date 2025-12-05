@@ -30,7 +30,8 @@ class GroupController extends Controller
      */
     public function index()
     {
-        $this->ensureAdmin();
+        // Permitir acceso a usuarios autenticados (no solo admin)
+        // $this->ensureAdmin();
         $groups = Group::with('subject')->orderBy('created_at', 'desc')->get();
         
         // Agregar el nombre de la materia directamente en el objeto

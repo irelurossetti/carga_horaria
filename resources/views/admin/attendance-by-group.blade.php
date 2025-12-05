@@ -122,6 +122,26 @@
         </div>
     </div>
 
+    <!-- Progreso del Sílabo -->
+    <div id="syllabusSection" class="hidden bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Progreso del Sílabo</h3>
+        </div>
+        <div class="p-6">
+            <div class="mb-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>Temas Cubiertos</span>
+                    <span id="syllabusProgress">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4">
+                    <div id="syllabusBar" class="bg-green-600 h-4 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+            </div>
+            <div id="topicsList" class="space-y-2 mt-4">
+            </div>
+        </div>
+    </div>
+
     <!-- Asistencia por Materia -->
     <div id="subjectsSection" class="hidden bg-white rounded-lg shadow-sm border border-gray-200">
         <div class="p-6 border-b border-gray-200">
@@ -206,6 +226,53 @@ async function loadGroupAttendance() {
     displayCharts(attendanceData);
     displayStudents(attendanceData);
     displaySubjectsSummary(attendanceData);
+    
+    // Cargar progreso del sílabo
+    if (group.subject_id) {
+        loadSyllabusProgress(group.subject_id, groupId);
+    }
+}
+
+async function loadSyllabusProgress(subjectId, groupId) {
+    try {
+        const response = await fetch(`/api/syllabus-topics?subject_id=${subjectId}`);
+        const topics = await response.json();
+        
+        if (topics.length > 0) {
+            document.getElementById('syllabusSection').classList.remove('hidden');
+            
+            // Simular progreso (en producción, esto vendría del backend)
+            const coveredCount = Math.floor(topics.length * 0.6);
+            const progress = Math.round((coveredCount / topics.length) * 100);
+            
+            document.getElementById('syllabusProgress').textContent = `${progress}% (${coveredCount}/${topics.length})`;
+            document.getElementById('syllabusBar').style.width = `${progress}%`;
+            
+            // Mostrar lista de temas
+            const topicsList = document.getElementById('topicsList');
+            topicsList.innerHTML = topics.map((topic, index) => {
+                const isCovered = index < coveredCount;
+                return `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 flex items-center justify-center rounded-full ${isCovered ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-500'} text-sm font-medium">
+                                ${topic.order_index}
+                            </span>
+                            <div>
+                                <p class="font-medium text-gray-900">${topic.unit_name}</p>
+                                <p class="text-sm text-gray-600">${topic.topic_description}</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 text-xs font-medium rounded ${isCovered ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}">
+                            ${isCovered ? 'Cubierto' : 'Pendiente'}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+    } catch (error) {
+        console.error('Error loading syllabus:', error);
+    }
 }
 
 function showGroupInfo(group) {
@@ -430,6 +497,7 @@ function hideAllSections() {
     document.getElementById('chartsSection').classList.add('hidden');
     document.getElementById('studentsSection').classList.add('hidden');
     document.getElementById('subjectsSection').classList.add('hidden');
+    document.getElementById('syllabusSection').classList.add('hidden');
 }
 
 function exportReport() {

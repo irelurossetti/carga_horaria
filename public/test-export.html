@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Exportación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            margin: 10px;
+            background: #881F34;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #6d1829;
+        }
+        .btn-excel {
+            background: #059669;
+        }
+        .btn-excel:hover {
+            background: #047857;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        h1 {
+            color: #881F34;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de Exportación de Calificaciones</h1>
+    
+    <div class="info">
+        <h3>Instrucciones:</h3>
+        <ol>
+            <li>Haz clic en uno de los botones de abajo</li>
+            <li>Si funciona, se descargará el archivo</li>
+            <li>Si no funciona, abre la consola (F12) y copia el error</li>
+        </ol>
+    </div>
+
+    <h2>Exportar Grupo 1:</h2>
+    <a href="/api/grades/group/1/export-pdf" class="btn" target="_blank">
+        📄 Exportar PDF (Grupo 1)
+    </a>
+    <a href="/api/grades/group/1/export-excel" class="btn btn-excel" target="_blank">
+        📊 Exportar Excel (Grupo 1)
+    </a>
+
+    <h2>Exportar Grupo 2:</h2>
+    <a href="/api/grades/group/2/export-pdf" class="btn" target="_blank">
+        📄 Exportar PDF (Grupo 2)
+    </a>
+    <a href="/api/grades/group/2/export-excel" class="btn btn-excel" target="_blank">
+        📊 Exportar Excel (Grupo 2)
+    </a>
+
+    <h2>Exportar Grupo 3:</h2>
+    <a href="/api/grades/group/3/export-pdf" class="btn" target="_blank">
+        📄 Exportar PDF (Grupo 3)
+    </a>
+    <a href="/api/grades/group/3/export-excel" class="btn btn-excel" target="_blank">
+        📊 Exportar Excel (Grupo 3)
+    </a>
+
+    <div class="info" style="margin-top: 40px;">
+        <h3>💡 Nota:</h3>
+        <p>Si los grupos no existen, el sistema usará datos de prueba automáticamente.</p>
+        <p>Los archivos se descargarán con nombres como:</p>
+        <ul>
+            <li><code>calificaciones_Grupo_X_2024-12-05.pdf</code></li>
+            <li><code>calificaciones_Grupo_X_2024-12-05.xlsx</code></li>
+        </ul>
+    </div>
+
+    <script>
+        console.log('Test de exportación cargado');
+        console.log('Rutas disponibles:');
+        console.log('- PDF: /api/grades/group/{id}/export-pdf');
+        console.log('- Excel: /api/grades/group/{id}/export-excel');
+    </script>
+</body>
+</html>

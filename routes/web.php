@@ -4,6 +4,11 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Volt;
 
+// Incluir rutas de prueba de exportación
+if (file_exists(__DIR__ . '/test-export.php')) {
+    require __DIR__ . '/test-export.php';
+}
+
 // Controladores de Autenticación y Vistas
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DocenteController;
@@ -31,6 +36,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\SystemParameterController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\IncidentController;
+use App\Http\Controllers\SyllabusTopicController;
 
 // ============================================================
 // RUTAS PÚBLICAS
@@ -55,8 +61,8 @@ Route::get('/forgot-password', function () {
     return view('auth.forgot-password');
 })->name('password.request')->middleware('guest');
 
-Route::get('/reset-password', function () {
-    return view('auth.reset-password');
+Route::get('/reset-password/{token}', function ($token) {
+    return view('auth.reset-password', ['token' => $token]);
 })->name('password.reset')->middleware('guest');
 
 // ============================================================
@@ -136,6 +142,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/asistencia-docente', function() { return view('admin.attendance-by-teacher'); })->name('attendance-teacher.index');
         Route::get('/asistencia-grupo', function() { return view('admin.attendance-by-group'); })->name('attendance-group.index');
         Route::get('/carga-horaria', function() { return view('admin.workload'); })->name('workload.index');
+        Route::get('/criterios-evaluacion', function() { return view('admin.evaluation-criteria'); })->name('evaluation-criteria.index');
+        Route::get('/calificaciones', [\App\Http\Controllers\GradeController::class, 'index'])->name('grades.index');
+        Route::get('/silabo', [SyllabusTopicController::class, 'manage'])->name('syllabus.index');
+        Route::get('/recursos', function() { return view('admin.resources'); })->name('resources.index');
+        Route::get('/suplencias', function() { return view('admin.substitutes'); })->name('substitutes.index');
         Route::get('/anuncios', function() { return view('admin.announcements'); })->name('announcements.index');
         Route::get('/incidencias', function() { return view('admin.incidents'); })->name('incidents.index');
         Route::get('/reportes', function() { return view('admin.reports'); })->name('reports.index');
@@ -168,6 +179,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/justificaciones', function() { return view('docente.justifications'); })->name('justifications');
         Route::get('/horario-semanal', function() { return view('docente.weekly-schedule'); })->name('weekly-schedule');
         Route::get('/historial-asistencias', function() { return view('docente.attendance-history'); })->name('attendance-history');
+        Route::get('/progreso-silabo', function() { return view('docente.syllabus-progress'); })->name('syllabus-progress');
         Route::get('/asistencia-qr', function() { 
             $teacher = auth()->user()->teacher;
             $schedules = [];
@@ -194,6 +206,10 @@ Route::middleware(['auth'])->group(function () {
         
         // Carga horaria con filtros
         Route::get('/carga-horaria', [DocenteController::class, 'cargaHoraria'])->name('workload');
+        
+        // Ingreso de calificaciones
+        Route::get('/calificaciones', [\App\Http\Controllers\GradeController::class, 'gradeEntry'])->name('grades');
+        Route::get('/calificaciones/{groupId}', [\App\Http\Controllers\GradeController::class, 'gradeEntry'])->name('grades.group');
         
         // Asistencia con QR
         Route::get('/asistencia-qr-nuevo', [DocenteController::class, 'attendanceQR'])->name('attendance-qr-new');
@@ -315,6 +331,15 @@ Route::middleware(['auth'])->group(function () {
         Route::post('reservations', [ReservationController::class, 'store'])->middleware('ensure.teacher_or_admin');
         Route::get('reservations', [ReservationController::class, 'index'])->middleware('ensure.teacher_or_admin');
 
+        // Recursos Físicos (Inventario)
+        Route::get('resources', [\App\Http\Controllers\ResourceController::class, 'index'])->middleware('ensure.teacher_or_admin');
+        Route::post('resources', [\App\Http\Controllers\ResourceController::class, 'store'])->middleware('ensure.admin');
+        Route::get('resources/{id}', [\App\Http\Controllers\ResourceController::class, 'show'])->middleware('ensure.teacher_or_admin');
+        Route::patch('resources/{id}', [\App\Http\Controllers\ResourceController::class, 'update'])->middleware('ensure.admin');
+        Route::delete('resources/{id}', [\App\Http\Controllers\ResourceController::class, 'destroy'])->middleware('ensure.admin');
+        Route::post('resources/{id}/check-availability', [\App\Http\Controllers\ResourceController::class, 'checkAvailability'])->middleware('ensure.teacher_or_admin');
+        Route::get('resources/available-at', [\App\Http\Controllers\ResourceController::class, 'availableAt'])->middleware('ensure.teacher_or_admin');
+
         // CU23 - Panel admin
         Route::get('admin/dashboard', [AdminDashboardController::class, 'index'])->middleware('ensure.admin');
 
@@ -353,6 +378,13 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('attendances/{id}', [AttendanceController::class, 'update'])->middleware('ensure.teacher_or_admin');
         Route::delete('attendances/{id}', [AttendanceController::class, 'destroy'])->middleware('ensure.admin');
 
+        // Gestión de Temas del Sílabo
+        Route::get('syllabus-topics', [SyllabusTopicController::class, 'index']);
+        Route::post('syllabus-topics', [SyllabusTopicController::class, 'store'])->middleware('ensure.admin');
+        Route::get('syllabus-topics/{id}', [SyllabusTopicController::class, 'show']);
+        Route::patch('syllabus-topics/{id}', [SyllabusTopicController::class, 'update'])->middleware('ensure.admin');
+        Route::delete('syllabus-topics/{id}', [SyllabusTopicController::class, 'destroy'])->middleware('ensure.admin');
+
         // CU29 - Configurar parámetros del sistema
         Route::get('system-parameters', [SystemParameterController::class, 'index'])->middleware('ensure.admin');
         Route::get('system-parameters/{key}', [SystemParameterController::class, 'show'])->middleware('ensure.admin');
@@ -379,6 +411,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('activity-logs/export-pdf', [\App\Http\Controllers\ActivityLogController::class, 'exportPdf'])->middleware('ensure.admin');
         Route::delete('activity-logs/clear-old', [\App\Http\Controllers\ActivityLogController::class, 'clearOld'])->middleware('ensure.admin');
         
+        // Sistema de Suplencias
+        Route::get('substitutes', [\App\Http\Controllers\SubstituteController::class, 'index'])->middleware('ensure.admin');
+        Route::get('substitutes/available', [\App\Http\Controllers\SubstituteController::class, 'findAvailable'])->middleware('ensure.admin');
+        Route::post('substitutes/assign', [\App\Http\Controllers\SubstituteController::class, 'assign'])->middleware('ensure.admin');
+        Route::get('substitutes/stats', [\App\Http\Controllers\SubstituteController::class, 'stats'])->middleware('ensure.admin');
+        Route::get('substitutes/for-cancellation/{id}', [\App\Http\Controllers\SubstituteController::class, 'forCancellation'])->middleware('ensure.admin');
+        Route::get('substitutes/for-incident/{id}', [\App\Http\Controllers\SubstituteController::class, 'forIncident'])->middleware('ensure.admin');
+        
         // Carga horaria docente
         Route::get('docente/workload', [DocenteController::class, 'getCargaHoraria'])->middleware('ensure.teacher_or_admin');
         Route::get('docente/workload/export-pdf', [DocenteController::class, 'exportWorkloadPDF'])->middleware('ensure.teacher_or_admin');
@@ -389,6 +429,83 @@ Route::middleware(['auth'])->group(function () {
         Route::get('workload/subject', [\App\Http\Controllers\WorkloadController::class, 'bySubject']);
         Route::get('workload/group', [\App\Http\Controllers\WorkloadController::class, 'byGroup']);
         Route::get('workload/{type}/export-pdf', [\App\Http\Controllers\WorkloadController::class, 'exportPDF']);
+        
+        // Criterios de Evaluación
+        Route::get('evaluation-criteria', [\App\Http\Controllers\EvaluationCriteriaController::class, 'index']);
+        Route::post('evaluation-criteria', [\App\Http\Controllers\EvaluationCriteriaController::class, 'store'])->middleware('ensure.admin');
+        Route::put('evaluation-criteria/{id}', [\App\Http\Controllers\EvaluationCriteriaController::class, 'update'])->middleware('ensure.admin');
+        Route::delete('evaluation-criteria/{id}', [\App\Http\Controllers\EvaluationCriteriaController::class, 'destroy'])->middleware('ensure.admin');
+        Route::get('evaluation-criteria/available-weight', [\App\Http\Controllers\EvaluationCriteriaController::class, 'getAvailableWeight']);
+        
+        // Calificaciones - Ruta de prueba con datos estáticos
+        Route::get('grades/group/{groupId}', function($groupId) {
+            return response()->json([
+                'success' => true,
+                'group' => [
+                    'id' => $groupId,
+                    'name' => 'Grupo C',
+                    'subject' => ['id' => 1, 'name' => 'Programación Web']
+                ],
+                'criteria' => [
+                    ['id' => 1, 'name' => 'Parcial 1', 'weight' => 25],
+                    ['id' => 2, 'name' => 'Parcial 2', 'weight' => 25],
+                    ['id' => 3, 'name' => 'Trabajos', 'weight' => 20],
+                    ['id' => 4, 'name' => 'Proyecto', 'weight' => 20],
+                    ['id' => 5, 'name' => 'Participación', 'weight' => 10],
+                ],
+                'students' => [
+                    [
+                        'id' => 1,
+                        'name' => 'Juan Pérez',
+                        'registration_number' => '2021001',
+                        'email' => 'juan@demo.com',
+                        'grades' => [
+                            ['criteria_id' => 1, 'score' => null],
+                            ['criteria_id' => 2, 'score' => null],
+                            ['criteria_id' => 3, 'score' => null],
+                            ['criteria_id' => 4, 'score' => null],
+                            ['criteria_id' => 5, 'score' => null],
+                        ],
+                        'final_grade' => 0
+                    ],
+                    [
+                        'id' => 2,
+                        'name' => 'María García',
+                        'registration_number' => '2021002',
+                        'email' => 'maria@demo.com',
+                        'grades' => [
+                            ['criteria_id' => 1, 'score' => null],
+                            ['criteria_id' => 2, 'score' => null],
+                            ['criteria_id' => 3, 'score' => null],
+                            ['criteria_id' => 4, 'score' => null],
+                            ['criteria_id' => 5, 'score' => null],
+                        ],
+                        'final_grade' => 0
+                    ],
+                    [
+                        'id' => 3,
+                        'name' => 'Carlos López',
+                        'registration_number' => '2021003',
+                        'email' => 'carlos@demo.com',
+                        'grades' => [
+                            ['criteria_id' => 1, 'score' => null],
+                            ['criteria_id' => 2, 'score' => null],
+                            ['criteria_id' => 3, 'score' => null],
+                            ['criteria_id' => 4, 'score' => null],
+                            ['criteria_id' => 5, 'score' => null],
+                        ],
+                        'final_grade' => 0
+                    ],
+                ]
+            ]);
+        });
+        // Guardar calificaciones
+        Route::post('grades/bulk', [\App\Http\Controllers\GradeController::class, 'saveBulkGrades']);
+        Route::get('grades/student/{studentId}', [\App\Http\Controllers\GradeController::class, 'getStudentReport']);
+        
+        // Exportar calificaciones
+        Route::get('grades/group/{groupId}/export-pdf', [\App\Http\Controllers\GradeController::class, 'exportPDF']);
+        Route::get('grades/group/{groupId}/export-excel', [\App\Http\Controllers\GradeController::class, 'exportExcel']);
     }); // <-- FIN DEL PREFIJO API
 
 }); // <-- ESTA ES LA LLAVE DE CIERRE PRINCIPAL DEL MIDDLEWARE 'AUTH'

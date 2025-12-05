@@ -29,4 +29,32 @@ class Group extends Model
         // Asegúrate que el modelo Subject también apunte a 'public.subjects'
         return $this->belongsTo(Subject::class, 'subject_id');
     }
+
+    /**
+     * Calcula el porcentaje de progreso del sílabo para este grupo
+     */
+    public function getSyllabusProgressAttribute()
+    {
+        if (!$this->subject_id) {
+            return 0;
+        }
+
+        $totalTopics = SyllabusTopic::where('subject_id', $this->subject_id)->count();
+        
+        if ($totalTopics === 0) {
+            return 0;
+        }
+
+        // Obtener los temas cubiertos en las asistencias de este grupo
+        $coveredTopics = SyllabusTopic::where('subject_id', $this->subject_id)
+            ->whereHas('attendances', function($query) {
+                $query->whereHas('schedule', function($scheduleQuery) {
+                    $scheduleQuery->where('group_id', $this->id);
+                });
+            })
+            ->distinct()
+            ->count();
+
+        return $totalTopics > 0 ? round(($coveredTopics / $totalTopics) * 100, 2) : 0;
+    }
 }

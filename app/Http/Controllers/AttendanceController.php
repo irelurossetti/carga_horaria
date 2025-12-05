@@ -69,6 +69,8 @@ class AttendanceController extends Controller
             'time' => 'nullable|date_format:H:i',
             'status' => 'required|string|in:present,absent,late',
             'notes' => 'nullable|string',
+            'topic_ids' => 'nullable|array',
+            'topic_ids.*' => 'integer|exists:syllabus_topics,id',
         ]);
 
         $user = $request->user();
@@ -84,8 +86,17 @@ class AttendanceController extends Controller
 
         $data['recorded_by'] = Auth::id();
 
+        $topicIds = $data['topic_ids'] ?? [];
+        unset($data['topic_ids']);
+
         $attendance = Attendance::create($data);
-        return response()->json($attendance, 201);
+        
+        // Sincronizar los temas vistos en esta clase
+        if (!empty($topicIds)) {
+            $attendance->topics()->sync($topicIds);
+        }
+
+        return response()->json($attendance->load('topics'), 201);
     }
 
     /**
@@ -126,6 +137,8 @@ class AttendanceController extends Controller
             'status' => 'nullable|string|in:present,absent,late',
             'notes' => 'nullable|string',
             'time' => 'nullable|date_format:H:i',
+            'topic_ids' => 'nullable|array',
+            'topic_ids.*' => 'integer|exists:syllabus_topics,id',
         ]);
         $user = $request->user();
         if (! $user->hasRole('administrador')) {
@@ -136,8 +149,17 @@ class AttendanceController extends Controller
             }
         }
 
+        $topicIds = $data['topic_ids'] ?? null;
+        unset($data['topic_ids']);
+
         $att->update($data);
-        return response()->json($att);
+        
+        // Sincronizar los temas si se proporcionaron
+        if ($topicIds !== null) {
+            $att->topics()->sync($topicIds);
+        }
+
+        return response()->json($att->load('topics'));
     }
 
     /**

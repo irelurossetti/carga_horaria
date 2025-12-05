@@ -94,7 +94,8 @@ class AcademicPeriodController extends Controller
      */
     public function index()
     {
-        $this->ensureAdmin();
+        // Permitir acceso a usuarios autenticados
+        // $this->ensureAdmin();
         
         // Usar consulta SQL directa para evitar el caché de PostgreSQL
         $periods = DB::select('SELECT * FROM academic_periods ORDER BY created_at DESC');

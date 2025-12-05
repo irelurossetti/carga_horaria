@@ -38,4 +38,28 @@ class Teacher extends Model
     {
         return $this->hasMany(Attendance::class, 'teacher_id');
     }
+
+    /**
+     * Relación uno a muchos con TeacherAvailability (un Docente tiene muchas disponibilidades)
+     */
+    public function availabilities()
+    {
+        return $this->hasMany(TeacherAvailability::class, 'teacher_id');
+    }
+
+    /**
+     * Verificar si el docente está disponible en un horario específico
+     */
+    public function isAvailableAt($dayOfWeek, $startTime, $endTime)
+    {
+        return TeacherAvailability::isTeacherAvailable($this->id, $dayOfWeek, $startTime, $endTime);
+    }
+
+    /**
+     * Obtener preferencia del docente para un horario
+     */
+    public function getPreferenceAt($dayOfWeek, $startTime, $endTime)
+    {
+        return TeacherAvailability::getTeacherPreference($this->id, $dayOfWeek, $startTime, $endTime);
+    }
 }

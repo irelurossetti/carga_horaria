@@ -15,7 +15,7 @@ return new class extends Migration
                 $table->id();
                 $table->unsignedBigInteger('room_id');
                 $table->unsignedBigInteger('schedule_id')->nullable();
-                $table->unsignedBigInteger('teacher_id');
+                $table->unsignedBigInteger('teacher_id')->nullable(); // Nullable para admins
                 $table->timestamp('reserved_at')->nullable();
                 $table->timestamp('expires_at')->nullable();
                 $table->text('notes')->nullable();

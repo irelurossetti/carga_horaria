@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Rooms API</title>
+</head>
+<body>
+    <h1>Test API de Aulas</h1>
+    <button onclick="testRooms()">Probar GET /api/rooms</button>
+    <pre id="result"></pre>
+    
+    <script>
+        async function testRooms() {
+            const result = document.getElementById('result');
+            result.textContent = 'Cargando...';
+            
+            try {
+                const response = await fetch('/api/rooms', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                result.textContent = `Status: ${response.status}\n\n`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    result.textContent += `Total aulas: ${data.length || data.data?.length || 0}\n\n`;
+                    result.textContent += JSON.stringify(data, null, 2);
+                } else {
+                    const text = await response.text();
+                    result.textContent += `Error: ${text}`;
+                }
+            } catch (error) {
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

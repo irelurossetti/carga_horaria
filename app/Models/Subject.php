@@ -27,4 +27,12 @@ class Subject extends Model
     {
         return $this->hasMany(Group::class, 'subject_id');
     }
+
+    /**
+     * Relación uno a muchos con SyllabusTopic (una materia tiene muchos temas)
+     */
+    public function syllabusTopics()
+    {
+        return $this->hasMany(SyllabusTopic::class, 'subject_id')->orderBy('order_index');
+    }
 }

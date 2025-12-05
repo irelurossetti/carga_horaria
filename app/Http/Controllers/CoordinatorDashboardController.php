@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Schedule;
 use App\Models\Room;
 use App\Models\Teacher;
+use App\Models\Group;
+use App\Models\SyllabusTopic;
 use Illuminate\Support\Facades\Auth;
 // Modelos comentados - tablas no existen:
 // use App\Models\Conflict;
-// use App\Models\Group;
 
 class CoordinatorDashboardController extends Controller
 {
@@ -43,8 +44,18 @@ class CoordinatorDashboardController extends Controller
     {
         // TABLAS QUE NO EXISTEN - Retornar 0
         $conflictsCount = 0;
-        $enabledGroups = 0;
         $recentConflicts = collect([]);
+        
+        // Obtener grupos con progreso del sílabo
+        $enabledGroups = Group::with('subject')->count();
+        $groupsWithProgress = Group::with('subject')->get()->map(function($group) {
+            return [
+                'id' => $group->id,
+                'name' => $group->name,
+                'subject' => $group->subject->name ?? 'Sin materia',
+                'progress' => $group->syllabus_progress
+            ];
+        });
 
         // Contar horarios sin aula asignada
         $schedulesWithoutRoom = Schedule::whereNull('room_id')->count();
@@ -110,6 +121,7 @@ class CoordinatorDashboardController extends Controller
             'freeRoomsToday' => $freeRoomsToday,
             'currentClass' => $currentClass,
             'upcomingSchedules' => $upcomingSchedules,
+            'groupsWithProgress' => $groupsWithProgress,
         ];
     }
 }

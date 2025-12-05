@@ -8,6 +8,7 @@ use App\Models\Group;
 use App\Models\Room;
 use App\Models\TeacherAssignment;
 use App\Models\Teacher;
+use App\Models\TeacherAvailability;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleGeneratorController extends Controller
@@ -77,7 +78,11 @@ class ScheduleGeneratorController extends Controller
                         foreach ($assignments as $as) {
                             $teacherId = $as->teacher_id;
 
-                            // check teacher free
+                            // ✅ NUEVO: Verificar disponibilidad del docente
+                            $isAvailable = TeacherAvailability::isTeacherAvailable($teacherId, $day, $start, $end);
+                            if (!$isAvailable) continue; // Saltar si el docente marcó este horario como no disponible
+
+                            // check teacher free (ya asignado en otro horario)
                             $teacherBusy = Schedule::where('teacher_id', $teacherId)
                                 ->where('day_of_week', $day)
                                 ->where(function($q) use ($start,$end){

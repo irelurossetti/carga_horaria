@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Recursos API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #333; color: #0f0; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Test API de Recursos</h1>
+    
+    <button onclick="testGetResources()">GET /api/resources</button>
+    <button onclick="testCreateResource()">POST /api/resources</button>
+    
+    <div id="result" class="result">
+        <h3>Resultado:</h3>
+        <pre id="output">Haz clic en un botón para probar...</pre>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+
+        async function testGetResources() {
+            try {
+                output.textContent = 'Cargando...';
+                const response = await fetch('/api/resources');
+                const data = await response.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = 'ERROR: ' + error.message;
+            }
+        }
+
+        async function testCreateResource() {
+            try {
+                output.textContent = 'Creando recurso...';
+                
+                // Obtener CSRF token
+                const csrfResponse = await fetch('/');
+                const html = await csrfResponse.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const csrfToken = doc.querySelector('meta[name="csrf-token"]')?.content;
+                
+                const response = await fetch('/api/resources', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken || ''
+                    },
+                    body: JSON.stringify({
+                        name: 'Proyector Test',
+                        type: 'Proyector',
+                        status: 'Disponible',
+                        serial_number: 'TEST-' + Date.now()
+                    })
+                });
+                
+                const data = await response.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = 'ERROR: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
