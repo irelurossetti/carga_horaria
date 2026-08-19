@@ -3,7 +3,7 @@
 ## ✅ Cambios Implementados
 
 ### **1. Nuevo Caso de Uso** ⭐
-
+wuaaaaaaa
 #### **CU32 - Reporte de Carga Horaria por Materia**
 
 **Vista**: `resources/views/admin/workload-by-subject.blade.php`  
